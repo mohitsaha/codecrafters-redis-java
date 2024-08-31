@@ -18,16 +18,18 @@ public class Main {
           // Wait for connection from client.
           System.out.println("Recieving message on port : 6379");
           clientSocket = serverSocket.accept();
-
-          InputStream inputStream  = clientSocket.getInputStream();
+          InputStream inputStream = clientSocket.getInputStream();
           InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
           BufferedReader br = new BufferedReader(inputStreamReader);
           OutputStreamWriter out_writer = new OutputStreamWriter(clientSocket.getOutputStream());
           BufferedWriter out = new BufferedWriter(out_writer);
-          String input = br.readLine();
-          System.out.printf("Recieved %s \n", input);
-          out.write("+PONG\r\n");
-          out.flush();
+          String input;
+          while((input = br.readLine()) != null) {
+              System.out.printf("Recieved %s \n", input);
+              if (input.equalsIgnoreCase("ping"))
+                  out.write("+PONG\r\n");
+              out.flush();
+          }
         } catch (IOException e) {
           System.out.println("IOException: " + e.getMessage());
         } finally {
