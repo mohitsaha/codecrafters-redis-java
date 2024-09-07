@@ -1,16 +1,20 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ConcurrentClientHandler implements Runnable{
     private Socket clientSocket;
     private final ArrayList<byte[]> args;
     private final CommandParser commandParser;
 
+    private final Database db;
+
     public ConcurrentClientHandler(Socket clientSocket){
         this.clientSocket = clientSocket;
         args = new ArrayList<>();
-        commandParser = new CommandParser();
+        db = new InMemoryDB();
+        commandParser = new CommandParser(db);
     }
 
     @Override

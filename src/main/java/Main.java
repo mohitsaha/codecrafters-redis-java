@@ -8,12 +8,12 @@ import java.util.concurrent.*;
 public class Main {
     public static void main(String[] args) {
         ServerSocket serverSocket = null;
-        ThreadPoolExecutor threadPoolExecutorexecutor = new ThreadPoolExecutor(
-                2,            // core pool size
-                4,            // maximum pool size
-                60,           // keep-alive time for idle threads
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+                2,
+                4,
+                60,
                 TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(2) // work queue
+                new LinkedBlockingQueue<>(2)
         );
         Socket clientSocket = null;
         int port = 6379;
@@ -24,7 +24,7 @@ public class Main {
             while (true) {
                 clientSocket = serverSocket.accept();
                 ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket);
-                threadPoolExecutorexecutor.execute(concurrentClientHandler);
+                threadPoolExecutor.execute(concurrentClientHandler);
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
@@ -39,3 +39,5 @@ public class Main {
         }
     }
 }
+
+
