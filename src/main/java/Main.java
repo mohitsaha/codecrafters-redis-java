@@ -1,45 +1,41 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public class Main {
-  public static void main(String[] args){
+    public static void main(String[] args) {
         ServerSocket serverSocket = null;
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                2,            // core pool size
+                4,            // maximum pool size
+                60,           // keep-alive time for idle threads
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(2) // work queue
+        );
         Socket clientSocket = null;
         int port = 6379;
         try {
-          serverSocket = new ServerSocket(port);
-          // Since the tester restarts your program quite often, setting SO_REUSEADDR
-          // ensures that we don't run into 'Address already in use' errors
-          serverSocket.setReuseAddress(true);
-          // Wait for connection from client.
-          System.out.println("Recieving message on port : 6379");
-          clientSocket = serverSocket.accept();
-          InputStream inputStream = clientSocket.getInputStream();
-          InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-          BufferedReader br = new BufferedReader(inputStreamReader);
-          OutputStreamWriter out_writer = new OutputStreamWriter(clientSocket.getOutputStream());
-          BufferedWriter out = new BufferedWriter(out_writer);
-          String input;
-          while((input = br.readLine()) != null) {
-              System.out.printf("Recieved %s \n", input);
-              if (input.equalsIgnoreCase("ping"))
-                  out.write("+PONG\r\n");
-              out.flush();
-          }
-        } catch (IOException e) {
-          System.out.println("IOException: " + e.getMessage());
-        } finally {
-          try {
-            if (clientSocket != null) {
-              clientSocket.close();
+            serverSocket = new ServerSocket(port);
+            serverSocket.setReuseAddress(true);
+            System.out.println("Recieving message on port : 6379");
+            while (true) {
+                clientSocket = serverSocket.accept();
+                ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket);
+                executor.execute(concurrentClientHandler);
             }
-          } catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
-          }
+        } finally {
+            try {
+                if (clientSocket != null) {
+                    clientSocket.close();
+                }
+            } catch (IOException e) {
+                System.out.println("IOException: " + e.getMessage());
+            }
         }
-  }
+    }
 }
