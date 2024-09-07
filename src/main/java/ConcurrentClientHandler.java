@@ -28,15 +28,15 @@ public class ConcurrentClientHandler implements Runnable{
                     System.err.println("Connection closed or no data received from the client.");
                     return;
                 }
-                int numOfElements = Integer.parseInt(numOfElementsLine.substring(1)); // *5\r\n
+                int numOfElements = Integer.parseInt(numOfElementsLine.substring(1));
                 System.out.println("numOfElements = " + numOfElements);
                 // Collect the command arguments
                 List<String> commandArguments = new ArrayList<>();
                 for (int i = 0; i < numOfElements; i++) {
-                    String argumentSizeLine = br.readLine(); // Read the size line (e.g., $3\r\n)
-                    int argumentSize = Integer.parseInt(argumentSizeLine.substring(1)); // Get the size, e.g., 3 for $3\r\n
-                    String argument = br.readLine(); // Read the actual argument (e.g., SET)
-                    commandArguments.add(argument);  // Add the command or argument to the list
+                    String argumentSizeLine = br.readLine();
+                    int argumentSize = Integer.parseInt(argumentSizeLine.substring(1));
+                    String argument = br.readLine();
+                    commandArguments.add(argument);
                     System.out.println("Collected argument: " + argument);
                 }
                 System.out.println("commands are : " + commandArguments);
