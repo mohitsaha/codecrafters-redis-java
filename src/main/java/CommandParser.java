@@ -1,34 +1,25 @@
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Locale;
+import java.util.List;
 
 public class CommandParser {
     private final Database database;
     CommandParser(Database database){
         this.database = database;
     }
-    public String parseCommand(String input, BufferedReader reader) throws IOException {
+    public String parseCommand(List<String> commandArguments) throws IOException {
         String response;
-        switch (input.toUpperCase()){
+        switch (commandArguments.get(0).toUpperCase()){
             case "PING":
                 response = handlePing();
                 break;
             case "ECHO":
-                reader.readLine();
-                String message = reader.readLine();
-                response = handleEcho(message);
+                response = handleEcho(commandArguments.get(1));
                 break;
             case "GET":
-                reader.readLine();
-                String getString = reader.readLine();
-                response = handleGET(getString);
+                response = handleGET(commandArguments.get(1));
                 break;
             case "SET":
-                reader.readLine();
-                String key = reader.readLine();
-                reader.readLine();
-                String value = reader.readLine();
-                response = handleSet(key,value);
+                response = handleSet(commandArguments);
                 break;
             default:
                 response = null;
@@ -37,8 +28,12 @@ public class CommandParser {
         return response;
     }
 
-    private String handleSet(String key, String value) {
-        return database.set(key,value);
+    private String handleSet(List<String> cmdArgs) {
+        if(cmdArgs.size() == 3) {
+            return database.set(cmdArgs.get(1), cmdArgs.get(2));
+        }else{
+            return database.set(cmdArgs);
+        }
     }
 
     private String handleGET(String data) {
