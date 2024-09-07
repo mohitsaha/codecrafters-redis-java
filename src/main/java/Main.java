@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 public class Main {
     public static void main(String[] args) {
         ServerSocket serverSocket = null;
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+        ThreadPoolExecutor threadPoolExecutorexecutor = new ThreadPoolExecutor(
                 2,            // core pool size
                 4,            // maximum pool size
                 60,           // keep-alive time for idle threads
@@ -24,7 +24,7 @@ public class Main {
             while (true) {
                 clientSocket = serverSocket.accept();
                 ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket);
-                executor.execute(concurrentClientHandler);
+                threadPoolExecutorexecutor.execute(concurrentClientHandler);
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());

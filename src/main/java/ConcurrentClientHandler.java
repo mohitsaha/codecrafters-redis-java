@@ -1,10 +1,16 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class ConcurrentClientHandler implements Runnable{
     private Socket clientSocket;
+    private final ArrayList<byte[]> args;
+    private final CommandParser commandParser;
+
     public ConcurrentClientHandler(Socket clientSocket){
         this.clientSocket = clientSocket;
+        args = new ArrayList<>();
+        commandParser = new CommandParser();
     }
 
     @Override
@@ -17,10 +23,11 @@ public class ConcurrentClientHandler implements Runnable{
             BufferedWriter out = new BufferedWriter(out_writer);
             String input;
             while ((input = br.readLine()) != null) {
-                System.out.printf("Recieved %s \n", input);
-                if (input.equalsIgnoreCase("ping"))
-                    out.write("+PONG\r\n");
-                out.flush();
+                String response = commandParser.parseCommand(input,br);
+                if(response != null) {
+                    out.write(response);
+                    out.flush();
+                }
             }
         }catch (IOException e ){
             System.err.printf("Exception while handling client :: {}", e.getMessage());
