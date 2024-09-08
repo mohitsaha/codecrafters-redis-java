@@ -1,4 +1,7 @@
-import java.util.HashMap;
+package db;
+
+import db.Database;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 

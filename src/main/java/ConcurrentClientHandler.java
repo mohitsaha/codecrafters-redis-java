@@ -1,18 +1,18 @@
+import db.Database;
+import db.InMemoryDB;
+import config.RedisConfig;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
 public class ConcurrentClientHandler implements Runnable{
     private Socket clientSocket;
-
-    private final CommandParser commandParser;
-    private final Database db;
-    public ConcurrentClientHandler(Socket clientSocket){
+    private RedisConfig redisConfig;
+    Database db = new InMemoryDB();
+    CommandParser commandParser = new CommandParser(db);
+    public ConcurrentClientHandler(Socket clientSocket,RedisConfig redisConfig){
         this.clientSocket = clientSocket;
-        db = new InMemoryDB();
-        commandParser = new CommandParser(db);
+        this.redisConfig = redisConfig;
     }
     @Override
     public void run() {
@@ -40,7 +40,7 @@ public class ConcurrentClientHandler implements Runnable{
                     System.out.println("Collected argument: " + argument);
                 }
                 System.out.println("commands are : " + commandArguments);
-                String response = commandParser.parseCommand(commandArguments);
+                String response = commandParser.parseCommand(commandArguments,redisConfig);
                 if (response != null) {
                     out.write(response);
                     out.flush();

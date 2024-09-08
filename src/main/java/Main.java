@@ -1,8 +1,10 @@
+import config.RedisConfig;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import static utils.RedisArgsParser.parseArgs;
 import java.util.concurrent.*;
 public class Main {
     public static void main(String[] args) {
@@ -14,6 +16,7 @@ public class Main {
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(2)
         );
+        RedisConfig config = parseArgs(args);
         Socket clientSocket = null;
         int port = 6379;
         try {
@@ -22,7 +25,7 @@ public class Main {
             System.out.println("Recieving message on port : 6379");
             while (true) {
                 clientSocket = serverSocket.accept();
-                ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket);
+                ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket,config);
                 threadPoolExecutor.execute(concurrentClientHandler);
             }
         } catch (IOException e) {
