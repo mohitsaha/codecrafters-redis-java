@@ -11,4 +11,6 @@ public interface Database {
 
     // Method to delete a key
     String del(String key);
+
+    List<String> getKeys();
 }

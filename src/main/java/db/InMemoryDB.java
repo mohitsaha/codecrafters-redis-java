@@ -2,7 +2,9 @@ package db;
 
 import db.Database;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryDB implements Database {
@@ -45,6 +47,13 @@ public class InMemoryDB implements Database {
     public String del(String key) {
         return null;
     }
+
+    @Override
+    public List<String> getKeys() {
+        Set<String> keySet = map.keySet();
+        return new ArrayList<>(keySet);
+    }
+
     class CacheEntry{
         private String value;
         private long expirationTime;
