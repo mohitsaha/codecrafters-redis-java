@@ -1,4 +1,6 @@
 import config.RedisConfig;
+import db.RDBFile;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,6 +19,9 @@ public class Main {
                 new LinkedBlockingQueue<>(2)
         );
         RedisConfig config = parseArgs(args);
+        if(config != null){
+            RDBFile rdbFile = new RDBFile(config);
+        }
         Socket clientSocket = null;
         int port = 6379;
         try {

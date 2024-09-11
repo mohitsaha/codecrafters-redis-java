@@ -8,8 +8,7 @@ import java.util.List;
 public class ConcurrentClientHandler implements Runnable{
     private Socket clientSocket;
     private RedisConfig redisConfig;
-    Database db = new InMemoryDB();
-    CommandParser commandParser = new CommandParser(db);
+    CommandParser commandParser = new CommandParser();
     public ConcurrentClientHandler(Socket clientSocket,RedisConfig redisConfig){
         this.clientSocket = clientSocket;
         this.redisConfig = redisConfig;

@@ -8,6 +8,9 @@ import java.nio.file.Path;
 
 public class RedisArgsParser {
     public static RedisConfig parseArgs(String[] args) {
+        if(args.length ==0){
+            return null;
+        }
         RedisConfig config = new RedisConfig();
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -29,22 +32,7 @@ public class RedisArgsParser {
                     throw new IllegalArgumentException("Unknown argument: " + args[i]);
             }
         }
-        CreateRDBFile(config);
         return config;
     }
-    private static void CreateRDBFile(RedisConfig config){
-        Path dir =  config.getDirectory() == null ? Path.of(""): Path.of(config.getDirectory());
-        String filename = config.getDbFilename() == null ? "test.rdb" : config.getDbFilename();
-        File dbfile = new File(dir.resolve(filename).toString());
-        try {
-            boolean created = dbfile.createNewFile();
-            if(created){
-                System.out.println("File created");
-            }else{
-                System.out.println("File was already created");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+
 }
