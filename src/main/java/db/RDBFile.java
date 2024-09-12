@@ -94,7 +94,6 @@ public class RDBFile {
                             args.add((String) value);
                             args.add("FC");
                             args.add(String.valueOf(expiration));
-                            System.out.println("Bruhh");
                             db.set(args);
                         }
                     }

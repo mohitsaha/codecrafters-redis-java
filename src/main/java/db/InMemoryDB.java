@@ -38,7 +38,6 @@ public class InMemoryDB implements Database {
         }else if(cmdArgs.get(3).equalsIgnoreCase("PX")){
             cacheEntry = CacheEntry.withTTL(cmdArgs.get(2),Long.parseLong(cmdArgs.get(4)),true);
         }else{
-            System.out.println("Method not implement for current set opCode");
             throw new IllegalStateException("Method not implement for current set opCode");
         }
         map.put(cmdArgs.get(1), cacheEntry);
