@@ -16,7 +16,6 @@ import static utils.RedisResponseBuilder.responseBuilder;
 public class CommandParser {
     private final Database database = InMemoryDB.getInstance();;
     CommandParser(){
-
     }
     public String parseCommand(List<String> commandArguments, RedisConfig redisConfig) throws IOException {
         String response;

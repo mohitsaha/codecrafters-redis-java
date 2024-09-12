@@ -25,14 +25,22 @@ public class InMemoryDB implements Database {
     @Override
     public String set(String key, String value) {
         System.out.println(String.format("saving %s value for key %s", value, key));
-        map.put(key, new CacheEntry(value));
+        map.put(key, CacheEntry.withoutTTL(value));
         System.out.println(map);
         return "+OK\r\n";
     }
 
     @Override
     public String set(List<String> cmdArgs) {
-        CacheEntry cacheEntry = new CacheEntry(cmdArgs.get(2), Long.parseLong(cmdArgs.get(4)), true);
+        CacheEntry cacheEntry;
+        if(cmdArgs.get(3).equalsIgnoreCase("FA")){
+            cacheEntry = CacheEntry.withExpirationTime(cmdArgs.get(2),Long.parseLong(cmdArgs.get(4)),true);
+        }else if(cmdArgs.get(3).equalsIgnoreCase("PX")){
+            cacheEntry = CacheEntry.withTTL(cmdArgs.get(2),Long.parseLong(cmdArgs.get(4)),true);
+        }else{
+            System.out.println("Method not implement for current set opCode");
+            throw new IllegalStateException("Method not implement for current set opCode");
+        }
         map.put(cmdArgs.get(1), cacheEntry);
         System.out.println("key = " + cmdArgs.get(1) + " CacheEntry = " + cacheEntry);
         System.out.println(map);
@@ -66,43 +74,5 @@ public class InMemoryDB implements Database {
     public List<String> getKeys() {
         Set<String> keySet = map.keySet();
         return new ArrayList<>(keySet);
-    }
-
-    class CacheEntry {
-        private String value;
-        private long expirationTime;
-        private long ttl;
-        private boolean expiringEntry = false;
-
-        @Override
-        public String toString() {
-            return "CacheEntry{" +
-                    "value='" + value + '\'' +
-                    ", expirationTime=" + expirationTime +
-                    ", ttl=" + ttl +
-                    ", expiringEntry=" + expiringEntry +
-                    '}';
-        }
-
-        public CacheEntry(String value) {
-            this.value = value;
-        }
-
-        public CacheEntry(String value, long ttl, boolean expiringEntry) {
-            this.value = value;
-            this.ttl = ttl;
-            this.expirationTime = System.currentTimeMillis() + ttl;
-            this.expiringEntry = expiringEntry;
-        }
-
-        public String getValue() {
-            if (!expiringEntry)
-                return value;
-            else if (System.currentTimeMillis() > expirationTime) {
-                return null;
-            } else {
-                return value;
-            }
-        }
     }
 }

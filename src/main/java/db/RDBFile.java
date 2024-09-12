@@ -88,13 +88,21 @@ public class RDBFile {
                         if (expiration == -1) {
                             db.set(key, (String) value);
                         } else {
-                            throw new IllegalStateException("with expiration not implemented yet");
+                            ArrayList<String> args = new ArrayList<>();
+                            args.add("SET");
+                            args.add(key);
+                            args.add((String) value);
+                            args.add("FC");
+                            args.add(String.valueOf(expiration));
+                            System.out.println("Bruhh");
+                            db.set(args);
                         }
                     }
                 }
             }
         }catch(Exception e){
             System.out.println("cannot able to parse RDB File");
+            System.out.printf("%s",e);
         }
     }
 
