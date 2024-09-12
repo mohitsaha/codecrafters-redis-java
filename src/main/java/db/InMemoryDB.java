@@ -33,7 +33,7 @@ public class InMemoryDB implements Database {
     @Override
     public String set(List<String> cmdArgs) {
         CacheEntry cacheEntry;
-        if(cmdArgs.get(3).equalsIgnoreCase("FA")){
+        if(cmdArgs.get(3).equalsIgnoreCase("FC")){
             cacheEntry = CacheEntry.withExpirationTime(cmdArgs.get(2),Long.parseLong(cmdArgs.get(4)),true);
         }else if(cmdArgs.get(3).equalsIgnoreCase("PX")){
             cacheEntry = CacheEntry.withTTL(cmdArgs.get(2),Long.parseLong(cmdArgs.get(4)),true);
