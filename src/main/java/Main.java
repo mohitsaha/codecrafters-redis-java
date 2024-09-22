@@ -6,6 +6,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import static utils.Constants.REDIS_DEFAULT_PORT;
 import static utils.RedisArgsParser.parseArgs;
 import java.util.concurrent.*;
 public class Main {
@@ -23,9 +25,13 @@ public class Main {
             RDBFile rdbFile = new RDBFile(config);
         }
         Socket clientSocket = null;
-        int port = 6379;
+
         try {
-            serverSocket = new ServerSocket(port);
+            if(config == null || config.getPortNumber() == null){
+                serverSocket = new ServerSocket(REDIS_DEFAULT_PORT);
+            }else {
+                serverSocket = new ServerSocket(config.getPortNumber());
+            }
             serverSocket.setReuseAddress(true);
             System.out.println("Recieving message on port : 6379");
             while (true) {

@@ -128,14 +128,14 @@ public class RDBFile {
         };
     }
 
-    public void parseMagic(DataInputStream inputStream) throws IOException {
+    private void parseMagic(DataInputStream inputStream) throws IOException {
         final var magic = new String(inputStream.readNBytes(5), StandardCharsets.US_ASCII);
         if (!magic.equals("REDIS")) {
             throw new IllegalStateException("invalid magic: " + magic);
         }
     }
 
-    public int parseVersion(DataInputStream inputStream) throws IOException {
+    private int parseVersion(DataInputStream inputStream) throws IOException {
         final var version = new String(inputStream.readNBytes(4), StandardCharsets.US_ASCII);
         try {
             return Integer.parseInt(version);
@@ -144,7 +144,7 @@ public class RDBFile {
         }
     }
 
-    public void log(Object... content) {
+    private void log(Object... content) {
         System.out.println("rdb: " + Arrays.toString(content));
     }
 
