@@ -1,9 +1,11 @@
 import config.RedisConfig;
+import config.Role;
 import db.RDBFile;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -37,6 +39,15 @@ public class Main {
             }
             serverSocket.setReuseAddress(true);
 
+            if(config != null && config.getRole() == Role.SLAVE){
+                //send ping to master
+                String host = config.getReplicaOffHost().split(" ")[0];
+                int port = Integer.parseInt(config.getReplicaOffHost().split(" ")[1]);
+                Socket slaveSocket = new Socket(host,port);
+                OutputStream output = slaveSocket.getOutputStream();
+                String handShakeMsg = "*1\r\n$4\r\nping\r\n";
+                output.write(handShakeMsg.getBytes(StandardCharsets.UTF_8));
+            }
             while (true) {
                 clientSocket = serverSocket.accept();
                 ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket,config);
