@@ -21,7 +21,7 @@ public class Main {
                 new LinkedBlockingQueue<>(2)
         );
         RedisConfig config = parseArgs(args);
-        if(config != null){
+        if(config.getDbFilename() != null){
             RDBFile rdbFile = new RDBFile(config);
         }
         Socket clientSocket = null;

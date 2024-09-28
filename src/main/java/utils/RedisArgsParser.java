@@ -7,7 +7,7 @@ public class RedisArgsParser {
         if(args.length ==0){
             return null;
         }
-        RedisConfig.Builder  ConfigBuilder = new RedisConfig.Builder();
+        RedisConfig.Builder ConfigBuilder = new RedisConfig.Builder();
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--dir":

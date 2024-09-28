@@ -3,8 +3,21 @@ package config;
 public class RedisConfig {
     private String directory;
     private String dbFilename;
-    private int portNumber;
+    private Integer portNumber;
     private String replicaOffHost;
+    private String role;
+    public String getDirectory() {
+        return directory;
+    }
+    public String getDbFilename() {
+        return dbFilename;
+    }
+    public Integer getPortNumber() {
+        return portNumber;
+    }
+    public String getReplicaOffHost() {
+        return replicaOffHost;
+    }
     private RedisConfig() {}
     public static class Builder {
         private String directory;
