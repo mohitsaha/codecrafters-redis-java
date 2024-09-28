@@ -20,9 +20,17 @@ public class Main {
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(2)
         );
+
         RedisConfig config = parseArgs(args);
+        //checking in config if there is DB flag turned on
         if(config.getDbFilename() != null){
             RDBFile rdbFile = new RDBFile(config);
+        }
+        //Checking in config if it's master or slave
+        if(config.getReplicaOffHost() != null){
+            String host = config.getReplicaOffHost();
+            System.out.println("Host is "+host);
+            return;
         }
         Socket clientSocket = null;
         try {
