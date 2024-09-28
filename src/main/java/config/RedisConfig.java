@@ -5,7 +5,10 @@ public class RedisConfig {
     private String dbFilename;
     private Integer portNumber;
     private String replicaOffHost;
-    private String role;
+    private Role role = Role.MASTER;
+    public Role getRole(){
+        return role;
+    }
     public String getDirectory() {
         return directory;
     }
@@ -22,13 +25,17 @@ public class RedisConfig {
     public static class Builder {
         private String directory;
         private String dbFilename;
-        private int portNumber;
+        private Integer portNumber;
         private String replicaOffHost;
+        private Role role;
         public Builder setDirectory(String directory) {
             this.directory = directory;
             return this;
         }
-
+        public Builder setRole(Role role){
+            this.role = role;
+            return this;
+        }
         public Builder setDbFilename(String dbFilename) {
             this.dbFilename = dbFilename;
             return this;
@@ -49,6 +56,7 @@ public class RedisConfig {
             config.dbFilename = this.dbFilename;
             config.portNumber = this.portNumber;
             config.replicaOffHost = this.replicaOffHost;
+            config.role = this.role;
             return config;
         }
     }

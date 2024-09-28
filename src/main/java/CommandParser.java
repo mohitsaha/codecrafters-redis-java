@@ -1,3 +1,4 @@
+import config.Role;
 import db.Database;
 import config.RedisConfig;
 import db.InMemoryDB;
@@ -125,7 +126,11 @@ public class CommandParser {
 //            resArr.add("# Replication");
 //            resArr.add("role:master");
 //            return responseBuilder(resArr);
-            return wrapper("role:master");
+            if(redisConfig == null || redisConfig.getRole() == Role.MASTER) {
+                return wrapper("role:master");
+            }else{
+                return wrapper("role:slave");
+            }
         }
         throw new IllegalArgumentException("Not implemented INFO for other states");
     }

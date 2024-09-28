@@ -23,24 +23,21 @@ public class Main {
 
         RedisConfig config = parseArgs(args);
         //checking in config if there is DB flag turned on
-        if(config.getDbFilename() != null){
+        if(config != null && config.getDbFilename() != null){
             RDBFile rdbFile = new RDBFile(config);
         }
         //Checking in config if it's master or slave
-        if(config.getReplicaOffHost() != null){
-            String host = config.getReplicaOffHost();
-            System.out.println("Host is "+host);
-            return;
-        }
         Socket clientSocket = null;
         try {
             if(config == null || config.getPortNumber() == null){
                 serverSocket = new ServerSocket(REDIS_DEFAULT_PORT);
+                System.out.println("Recieving message on port : " + REDIS_DEFAULT_PORT);
             }else {
                 serverSocket = new ServerSocket(config.getPortNumber());
+                System.out.println("Recieving message on port : " + config.getPortNumber());
             }
             serverSocket.setReuseAddress(true);
-            System.out.println("Recieving message on port : 6379");
+
             while (true) {
                 clientSocket = serverSocket.accept();
                 ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket,config);
