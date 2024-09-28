@@ -9,7 +9,7 @@ public class RedisResponseBuilder {
         System.out.println(res);
         return res;
     }
-    private static String wrapper(String raw){
+    public static String wrapper(String raw){
         return String.format("$%s\r\n%s\r\n",raw.length(),raw);
     }
 }

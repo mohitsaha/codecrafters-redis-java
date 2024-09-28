@@ -25,7 +25,6 @@ public class Main {
             RDBFile rdbFile = new RDBFile(config);
         }
         Socket clientSocket = null;
-
         try {
             if(config == null || config.getPortNumber() == null){
                 serverSocket = new ServerSocket(REDIS_DEFAULT_PORT);

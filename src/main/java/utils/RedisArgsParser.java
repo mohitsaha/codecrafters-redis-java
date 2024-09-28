@@ -31,6 +31,7 @@ public class RedisArgsParser {
                 case "--port":
                     if (i + 1 < args.length) {
                         config.setPortNumber(Integer.parseInt(args[++i]));
+
                     } else {
                         throw new IllegalArgumentException("Missing argument for --port");
                     }
