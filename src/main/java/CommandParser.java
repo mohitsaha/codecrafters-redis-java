@@ -127,7 +127,7 @@ public class CommandParser {
 //            resArr.add("role:master");
 //            return responseBuilder(resArr);
             if(redisConfig == null || redisConfig.getRole() == Role.MASTER) {
-                return wrapper("role:master");
+                return wrapper("role:master\nmaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb\nmaster_repl_offset:0");
             }else{
                 return wrapper("role:slave");
             }

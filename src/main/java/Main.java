@@ -26,7 +26,6 @@ public class Main {
         if(config != null && config.getDbFilename() != null){
             RDBFile rdbFile = new RDBFile(config);
         }
-        //Checking in config if it's master or slave
         Socket clientSocket = null;
         try {
             if(config == null || config.getPortNumber() == null){
@@ -56,5 +55,3 @@ public class Main {
         }
     }
 }
-
-
