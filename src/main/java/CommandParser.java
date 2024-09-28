@@ -121,9 +121,9 @@ public class CommandParser {
             //repl_backlog_size:1048576
             //repl_backlog_first_byte_offset:0
             //repl_backlog_histlen:
-            ArrayList<String> resArr = new ArrayList<>();
+//            ArrayList<String> resArr = new ArrayList<>();
 //            resArr.add("# Replication");
-            resArr.add("role:master");
+//            resArr.add("role:master");
 //            return responseBuilder(resArr);
             return wrapper("role:master");
         }
