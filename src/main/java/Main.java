@@ -66,6 +66,12 @@ public class Main {
                 cmdArray.add("capa");
                 cmdArray.add("psync2");
                 output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
+                //PSYNC ? -1
+
+                cmdArray.add("PSYNC");
+                cmdArray.add("?");
+                cmdArray.add("-1");
+                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
 
             }
             while (true) {
