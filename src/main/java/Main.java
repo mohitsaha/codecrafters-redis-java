@@ -1,11 +1,13 @@
 import config.RedisConfig;
 import config.Role;
 import db.RDBFile;
+import utils.RedisResponseBuilder;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -47,6 +49,24 @@ public class Main {
                 OutputStream output = slaveSocket.getOutputStream();
                 String handShakeMsg = "*1\r\n$4\r\nping\r\n";
                 output.write(handShakeMsg.getBytes(StandardCharsets.UTF_8));
+
+                //# REPLCONF listening-port <PORT>
+                //*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n
+
+                //# REPLCONF capa psync2
+                //*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n
+                ArrayList<String> cmdArray = new ArrayList<>();
+                cmdArray.add("REPLCONF");
+                cmdArray.add("listening-port");
+                cmdArray.add(Integer.toString(config.getPortNumber()));
+                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
+                cmdArray.clear();
+
+                cmdArray.add("REPLCONF");
+                cmdArray.add("capa");
+                cmdArray.add("psync2");
+                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
+
             }
             while (true) {
                 clientSocket = serverSocket.accept();
