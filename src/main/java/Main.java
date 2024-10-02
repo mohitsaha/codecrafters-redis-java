@@ -1,6 +1,7 @@
 import config.RedisConfig;
 import config.Role;
 import db.RDBFile;
+import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 
 import java.io.*;
@@ -42,37 +43,22 @@ public class Main {
             serverSocket.setReuseAddress(true);
 
             if(config != null && config.getRole() == Role.SLAVE){
-                //send ping to master
+
                 String host = config.getReplicaOffHost().split(" ")[0];
                 int port = Integer.parseInt(config.getReplicaOffHost().split(" ")[1]);
                 Socket slaveSocket = new Socket(host,port);
+                InputStream input = slaveSocket.getInputStream();
                 OutputStream output = slaveSocket.getOutputStream();
-                String handShakeMsg = "*1\r\n$4\r\nping\r\n";
-                output.write(handShakeMsg.getBytes(StandardCharsets.UTF_8));
-
-                //# REPLCONF listening-port <PORT>
-                //*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n
-
-                //# REPLCONF capa psync2
-                //*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n
-                ArrayList<String> cmdArray = new ArrayList<>();
-                cmdArray.add("REPLCONF");
-                cmdArray.add("listening-port");
-                cmdArray.add(Integer.toString(config.getPortNumber()));
-                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
-                cmdArray.clear();
-
-                cmdArray.add("REPLCONF");
-                cmdArray.add("capa");
-                cmdArray.add("psync2");
-                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
-                //PSYNC ? -1
-
-                cmdArray.add("PSYNC");
-                cmdArray.add("?");
-                cmdArray.add("-1");
-                output.write(RedisResponseBuilder.responseBuilder(cmdArray).getBytes(StandardCharsets.UTF_8));
-
+                RedisCommandBuilder builder = new RedisCommandBuilder();
+                sendCommand(output, input, builder.command("PING"));
+                // Send REPLCONF commands
+                sendCommand(output, input, builder.command("REPLCONF")
+                        .argument("listening-port").argument(config.getPortNumber()));
+                sendCommand(output, input, builder.command("REPLCONF")
+                        .argument("capa").argument("psync2"));
+                // PSYNC command
+                sendCommand(output, input, builder.command("PSYNC")
+                        .argument("?").argument("-1"));
             }
             while (true) {
                 clientSocket = serverSocket.accept();
@@ -81,6 +67,8 @@ public class Main {
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         } finally {
             try {
                 if (clientSocket != null) {
@@ -91,4 +79,21 @@ public class Main {
             }
         }
     }
+    public static void readResponse(InputStream input) throws IOException {
+        byte[] buffer = new byte[1024];
+        int bytesRead = input.read(buffer);
+
+        if (bytesRead == -1) {
+            throw new EOFException("End of stream reached");
+        }
+        String response = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+        System.out.println("Received response from slave inputstream : " + response);
+    }
+
+    private static void sendCommand(OutputStream output, InputStream input, RedisCommandBuilder builder) throws Exception {
+        String command = builder.build();
+        output.write(command.getBytes(StandardCharsets.UTF_8));
+        readResponse(input); // Handle reading response after sending command
+    }
+
 }

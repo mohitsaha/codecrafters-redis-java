@@ -2,6 +2,7 @@ import config.Role;
 import db.Database;
 import config.RedisConfig;
 import db.InMemoryDB;
+import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 import java.io.File;
 import java.io.FileInputStream;
@@ -67,23 +68,23 @@ public class CommandParser {
     }
 
     private String handleConfig(List<String> cmdArgs,RedisConfig redisConfig) {
+        RedisCommandBuilder builder = new RedisCommandBuilder();
         if(cmdArgs.get(1).equalsIgnoreCase("GET")){
-            ArrayList<String> resCmdArr = new ArrayList<>();
             if(cmdArgs.size() == 3) {
                 if (cmdArgs.get(2).equalsIgnoreCase("dir")) {
-                    resCmdArr.add("dir");
-                    resCmdArr.add(redisConfig.getDirectory());
+                    builder.command("dir");
+                    builder.argument(redisConfig.getDirectory());
                 } else {
-                    resCmdArr.add("dbfilename");
-                    resCmdArr.add(redisConfig.getDbFilename());
+                    builder.command("dbfilename");
+                    builder.argument(redisConfig.getDbFilename());
                 }
             }else if(cmdArgs.size() == 4){
-                resCmdArr.add("dir");
-                resCmdArr.add(redisConfig.getDirectory());
-                resCmdArr.add("dbfilename");
-                resCmdArr.add(redisConfig.getDbFilename());
+                builder.command("dir");
+                builder.argument(redisConfig.getDirectory());
+                builder.command("dbfilename");
+                builder.argument(redisConfig.getDbFilename());
             }
-            return responseBuilder(resCmdArr);
+            return builder.build();
         }else{
             System.out.println("Method not implemented");
             return null;
