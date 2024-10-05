@@ -51,12 +51,10 @@ public class Main {
                 OutputStream output = slaveSocket.getOutputStream();
                 RedisCommandBuilder builder = new RedisCommandBuilder();
                 sendCommand(output, input, builder.command("PING"));
-                // Send REPLCONF commands
                 sendCommand(output, input, builder.command("REPLCONF")
                         .argument("listening-port").argument(config.getPortNumber()));
                 sendCommand(output, input, builder.command("REPLCONF")
                         .argument("capa").argument("psync2"));
-                // PSYNC command
                 sendCommand(output, input, builder.command("PSYNC")
                         .argument("?").argument("-1"));
             }
@@ -93,7 +91,7 @@ public class Main {
     private static void sendCommand(OutputStream output, InputStream input, RedisCommandBuilder builder) throws Exception {
         String command = builder.build();
         output.write(command.getBytes(StandardCharsets.UTF_8));
-        readResponse(input); // Handle reading response after sending command
+        readResponse(input);
     }
 
 }

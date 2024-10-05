@@ -29,7 +29,6 @@ public class ConcurrentClientHandler implements Runnable{
                 }
                 int numOfElements = Integer.parseInt(numOfElementsLine.substring(1));
                 System.out.println("numOfElements = " + numOfElements);
-                // Collect the command arguments
                 List<String> commandArguments = new ArrayList<>();
                 for (int i = 0; i < numOfElements; i++) {
                     String argumentSizeLine = br.readLine();

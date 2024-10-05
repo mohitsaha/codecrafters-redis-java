@@ -114,19 +114,6 @@ public class CommandParser {
     private String handleInfo(List<String> commandArguments, RedisConfig redisConfig){
         String state = commandArguments.get(1);
         if(state.equals("replication")){
-            //role:master
-            //connected_slaves:0
-            //master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb
-            //master_repl_offset:0
-            //second_repl_offset:-1
-            //repl_backlog_active:0
-            //repl_backlog_size:1048576
-            //repl_backlog_first_byte_offset:0
-            //repl_backlog_histlen:
-//            ArrayList<String> resArr = new ArrayList<>();
-//            resArr.add("# Replication");
-//            resArr.add("role:master");
-//            return responseBuilder(resArr);
             if(redisConfig == null || redisConfig.getRole() == Role.MASTER) {
                 return wrapper("role:master\nmaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb\nmaster_repl_offset:0");
             }else{
