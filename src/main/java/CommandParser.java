@@ -40,11 +40,16 @@ public class CommandParser {
                 case "KEYS" -> handleKeys(commandArguments, redisConfig);
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
                 case "REPLCONF" -> "+OK\r\n";
+                case "PSYNC" -> handlePsync(commandArguments,redisConfig);
                 default -> "ERROR: Unknown command";
             };
         }
 
         return response;
+    }
+
+    private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
+        return "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
     }
 
 
