@@ -39,6 +39,7 @@ public class CommandParser {
                 case "CONFIG" -> handleConfig(commandArguments, redisConfig);
                 case "KEYS" -> handleKeys(commandArguments, redisConfig);
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
+                case "REPLCONF" -> "+OK\r\n";
                 default -> "ERROR: Unknown command";
             };
         }
