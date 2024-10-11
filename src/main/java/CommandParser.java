@@ -2,15 +2,15 @@ import config.Role;
 import db.Database;
 import config.RedisConfig;
 import db.InMemoryDB;
+import utils.OutputStreamHolder;
 import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import static utils.RedisResponseBuilder.responseBuilder;
@@ -18,19 +18,17 @@ import static utils.RedisResponseBuilder.wrapper;
 
 public class CommandParser {
     private final Database database = InMemoryDB.getInstance();
-
     public String parseCommand(List<String> commandArguments, RedisConfig redisConfig) throws IOException {
+
         String response;
         String command = commandArguments.get(0);
-
-        // Handle cases like "-p" directly without converting to uppercase
         if (command.equals("-p")) {
             if (commandArguments.size() > 1) {
                 response = handleCustomPort(commandArguments, redisConfig);
             } else {
                 response = "ERROR: Missing port number for -p";
             }
-        } else {
+        }else {
             response = switch (command.toUpperCase()) {
                 case "PING" -> handlePing();
                 case "ECHO" -> handleEcho(commandArguments.get(1));
@@ -49,7 +47,26 @@ public class CommandParser {
     }
 
     private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
-        return "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
+        PrintStream out = OutputStreamHolder.outputStream.get();
+        String fullResyncResponse = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
+        out.print(fullResyncResponse);
+        out.flush();
+        sendEmptyRDBFile();
+        return null;    
+    }
+
+    private void sendEmptyRDBFile() {
+        PrintStream out = OutputStreamHolder.outputStream.get();
+        String fileContents =
+                "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+        byte[] bytes = Base64.getDecoder().decode(fileContents);
+        try {
+            out.write(("$" + bytes.length + "\r\n").getBytes());
+            out.write(bytes);
+            out.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

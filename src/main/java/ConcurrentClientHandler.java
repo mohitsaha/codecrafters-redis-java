@@ -1,6 +1,8 @@
 import db.Database;
 import db.InMemoryDB;
 import config.RedisConfig;
+import utils.OutputStreamHolder;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ public class ConcurrentClientHandler implements Runnable{
             BufferedReader br = new BufferedReader(inputStreamReader);
             OutputStreamWriter out_writer = new OutputStreamWriter(clientSocket.getOutputStream());
             BufferedWriter out = new BufferedWriter(out_writer);
+            OutputStreamHolder.outputStream.set(new PrintStream(clientSocket.getOutputStream()));
             while(true) {
                 String numOfElementsLine = br.readLine();
                 if (numOfElementsLine == null) {
