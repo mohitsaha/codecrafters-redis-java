@@ -41,15 +41,15 @@ public class Main {
                 System.out.println("Recieving message on port : " + config.getPortNumber());
             }
             serverSocket.setReuseAddress(true);
-
+            Socket slaveSocket = null;
             if(config != null && config.getRole() == Role.SLAVE){
-
-                String host = config.getReplicaOffHost().split(" ")[0];
-                int port = Integer.parseInt(config.getReplicaOffHost().split(" ")[1]);
-                Socket slaveSocket = new Socket(host,port);
+                String host = config.getReplicaOfHost().split(" ")[0];
+                int port = Integer.parseInt(config.getReplicaOfHost().split(" ")[1]);
+                slaveSocket = new Socket(host,port);
                 InputStream input = slaveSocket.getInputStream();
                 OutputStream output = slaveSocket.getOutputStream();
                 RedisCommandBuilder builder = new RedisCommandBuilder();
+                //as a slave the it sends this commands as inital handshake
                 sendCommand(output, input, builder.command("PING"));
                 sendCommand(output, input, builder.command("REPLCONF")
                         .argument("listening-port").argument(config.getPortNumber()));

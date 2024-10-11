@@ -12,12 +12,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import static utils.RedisResponseBuilder.responseBuilder;
 import static utils.RedisResponseBuilder.wrapper;
 
 public class CommandParser {
     private final Database database = InMemoryDB.getInstance();
+    private static BlockingQueue<String> blockingQueue = new LinkedBlockingDeque<>();
     public String parseCommand(List<String> commandArguments, RedisConfig redisConfig) throws IOException {
 
         String response;
@@ -52,7 +55,24 @@ public class CommandParser {
         out.print(fullResyncResponse);
         out.flush();
         sendEmptyRDBFile();
+        //sendBufferToCommand
+        sendCommandToReplica();
         return null;    
+    }
+
+    private void sendCommandToReplica() {
+        PrintStream out = OutputStreamHolder.outputStream.get();
+        try {
+            while (true) {
+                String element = blockingQueue.take();
+                out.write(element.getBytes());
+                out.flush();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void sendEmptyRDBFile() {
@@ -115,6 +135,7 @@ public class CommandParser {
     }
 
     private String handleSet(List<String> cmdArgs) {
+        blockingQueue.add(RedisResponseBuilder.responseBuilder(cmdArgs));
         if(cmdArgs.size() == 3) {
             return database.set(cmdArgs.get(1), cmdArgs.get(2));
         }else{

@@ -34,7 +34,7 @@ public class RedisArgsParser {
                     break;
                 case "--replicaof":
                     if (i + 1 < args.length) {
-                        configBuilder.setReplicaOffHost(args[++i]);
+                        configBuilder.setReplicaOfHost(args[++i]);
                         configBuilder.setRole(Role.SLAVE);
                     } else {
                         throw new IllegalArgumentException("Missing argument for --replicaof");
