@@ -1,5 +1,9 @@
 package config;
 
+import java.io.OutputStream;
+import java.util.HashSet;
+import java.util.Set;
+
 public class RedisConfig {
     private String directory;
     private String dbFilename;
@@ -20,6 +24,17 @@ public class RedisConfig {
     }
     public String getReplicaOfHost() {
         return replicaOfHost;
+    }
+    private volatile Set<OutputStream> replicas = new HashSet<>();
+
+    public void addReplicaOutputStream(OutputStream outputStream){
+        replicas.add(outputStream);
+    }
+    public Set<OutputStream> getReplicas(){
+        return replicas;
+    }
+    public void setRole(Role role){
+        this.role = role;
     }
     private RedisConfig() {}
     public static class Builder {

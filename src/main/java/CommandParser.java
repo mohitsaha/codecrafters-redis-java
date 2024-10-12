@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -36,7 +37,7 @@ public class CommandParser {
                 case "PING" -> handlePing();
                 case "ECHO" -> handleEcho(commandArguments.get(1));
                 case "GET" -> handleGET(commandArguments.get(1));
-                case "SET" -> handleSet(commandArguments);
+                case "SET" -> handleSet(commandArguments,redisConfig);
                 case "CONFIG" -> handleConfig(commandArguments, redisConfig);
                 case "KEYS" -> handleKeys(commandArguments, redisConfig);
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
@@ -51,6 +52,8 @@ public class CommandParser {
 
     private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
         PrintStream out = OutputStreamHolder.outputStream.get();
+        redisConfig.addReplicaOutputStream(OutputStreamHolder.outputStream.get());
+        System.out.println("Redis Replicas are : "+redisConfig.getReplicas());
         String fullResyncResponse = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
         out.print(fullResyncResponse);
         out.flush();
@@ -134,8 +137,22 @@ public class CommandParser {
         }
     }
 
-    private String handleSet(List<String> cmdArgs) {
-        blockingQueue.add(RedisResponseBuilder.responseBuilder(cmdArgs));
+    private String handleSet(List<String> cmdArgs,RedisConfig redisConfig) {
+        if(redisConfig != null && redisConfig.getRole() == Role.MASTER){
+                //Sending Data to replicas
+            Set<OutputStream> replicaOS = redisConfig.getReplicas();
+            System.out.println("Sending set from Master");
+            replicaOS.forEach(outputStream -> {
+                String response = RedisResponseBuilder.responseBuilder(cmdArgs);
+                try {
+                    outputStream.write(response.getBytes());
+                    outputStream.flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+       // blockingQueue.add(RedisResponseBuilder.responseBuilder(cmdArgs));
         if(cmdArgs.size() == 3) {
             return database.set(cmdArgs.get(1), cmdArgs.get(2));
         }else{

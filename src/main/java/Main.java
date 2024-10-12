@@ -19,14 +19,17 @@ public class Main {
     public static void main(String[] args) {
         ServerSocket serverSocket;
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-                2,
-                4,
+                6,
+                6,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(2)
         );
 
         RedisConfig config = parseArgs(args);
+        if(config != null && config.getRole() == null){
+            config.setRole(Role.MASTER);
+        }
         //checking in config if there is DB flag turned on
         if(config != null && config.getDbFilename() != null){
             RDBFile rdbFile = new RDBFile(config);
@@ -60,6 +63,7 @@ public class Main {
             }
             while (true) {
                 clientSocket = serverSocket.accept();
+                System.out.println("starting a client");
                 ConcurrentClientHandler concurrentClientHandler = new ConcurrentClientHandler(clientSocket,config);
                 threadPoolExecutor.execute(concurrentClientHandler);
             }
