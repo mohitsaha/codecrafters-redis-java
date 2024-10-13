@@ -40,8 +40,9 @@ public class InMemoryDB implements Database {
         }else{
             throw new IllegalStateException("Method not implement for current set opCode");
         }
+
         map.put(cmdArgs.get(1), cacheEntry);
-        System.out.println("key = " + cmdArgs.get(1) + " CacheEntry = " + cacheEntry);
+        System.out.println("key = " + cmdArgs.get(1)+ " CacheEntry = " + cacheEntry);
         System.out.println(map);
         return "+OK\r\n";
     }

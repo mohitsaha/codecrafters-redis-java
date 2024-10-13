@@ -2,14 +2,11 @@ import config.Role;
 import db.Database;
 import config.RedisConfig;
 import db.InMemoryDB;
-import utils.OutputStreamHolder;
+import utils.StreamHolder;
 import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
@@ -51,20 +48,21 @@ public class CommandParser {
     }
 
     private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
-        PrintStream out = OutputStreamHolder.outputStream.get();
-        redisConfig.addReplicaOutputStream(OutputStreamHolder.outputStream.get());
+        PrintStream out = StreamHolder.outputStream.get();
+        redisConfig.addReplicaOutputStream(StreamHolder.outputStream.get());
         System.out.println("Redis Replicas are : "+redisConfig.getReplicas());
         String fullResyncResponse = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
         out.print(fullResyncResponse);
         out.flush();
         sendEmptyRDBFile();
         //sendBufferToCommand
-        sendCommandToReplica();
+        //sendCommandToReplica();
+
         return null;    
     }
 
     private void sendCommandToReplica() {
-        PrintStream out = OutputStreamHolder.outputStream.get();
+        PrintStream out = StreamHolder.outputStream.get();
         try {
             while (true) {
                 String element = blockingQueue.take();
@@ -79,7 +77,7 @@ public class CommandParser {
     }
 
     private void sendEmptyRDBFile() {
-        PrintStream out = OutputStreamHolder.outputStream.get();
+        PrintStream out = StreamHolder.outputStream.get();
         String fileContents =
                 "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
         byte[] bytes = Base64.getDecoder().decode(fileContents);
@@ -141,7 +139,7 @@ public class CommandParser {
         if(redisConfig != null && redisConfig.getRole() == Role.MASTER){
                 //Sending Data to replicas
             Set<OutputStream> replicaOS = redisConfig.getReplicas();
-            System.out.println("Sending set from Master");
+            System.out.println("Sending command from Master");
             replicaOS.forEach(outputStream -> {
                 String response = RedisResponseBuilder.responseBuilder(cmdArgs);
                 try {
@@ -152,12 +150,13 @@ public class CommandParser {
                 }
             });
         }
-       // blockingQueue.add(RedisResponseBuilder.responseBuilder(cmdArgs));
+        String response;
         if(cmdArgs.size() == 3) {
-            return database.set(cmdArgs.get(1), cmdArgs.get(2));
+            response =  database.set(cmdArgs.get(1), cmdArgs.get(2));
         }else{
-            return database.set(cmdArgs);
+            response =  database.set(cmdArgs);
         }
+        return response;
     }
 
     private String handleGET(String data) {

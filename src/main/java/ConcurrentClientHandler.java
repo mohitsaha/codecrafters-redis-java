@@ -1,7 +1,5 @@
-import db.Database;
-import db.InMemoryDB;
 import config.RedisConfig;
-import utils.OutputStreamHolder;
+import utils.StreamHolder;
 
 import java.io.*;
 import java.net.Socket;
@@ -23,7 +21,8 @@ public class ConcurrentClientHandler implements Runnable{
             BufferedReader br = new BufferedReader(inputStreamReader);
             OutputStreamWriter out_writer = new OutputStreamWriter(clientSocket.getOutputStream());
             BufferedWriter out = new BufferedWriter(out_writer);
-            OutputStreamHolder.outputStream.set(new PrintStream(clientSocket.getOutputStream()));
+            StreamHolder.outputStream.set(new PrintStream(clientSocket.getOutputStream()));
+            StreamHolder.inputStream.set(clientSocket.getInputStream());
             while(true) {
                 String numOfElementsLine = br.readLine();
                 if (numOfElementsLine == null) {
@@ -35,6 +34,7 @@ public class ConcurrentClientHandler implements Runnable{
                 List<String> commandArguments = new ArrayList<>();
                 for (int i = 0; i < numOfElements; i++) {
                     String argumentSizeLine = br.readLine();
+                    System.out.println("argumentSizeLine" + argumentSizeLine);
                     int argumentSize = Integer.parseInt(argumentSizeLine.substring(1));
                     String argument = br.readLine();
                     commandArguments.add(argument);
