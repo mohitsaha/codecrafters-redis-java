@@ -7,6 +7,7 @@ import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
@@ -38,13 +39,27 @@ public class CommandParser {
                 case "CONFIG" -> handleConfig(commandArguments, redisConfig);
                 case "KEYS" -> handleKeys(commandArguments, redisConfig);
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
-                case "REPLCONF" -> "+OK\r\n";
+//                case "REPLCONF" -> "+OK\r\n";
+                case "REPLCONF" -> handleReplConfig(commandArguments,redisConfig);
                 case "PSYNC" -> handlePsync(commandArguments,redisConfig);
                 default -> "ERROR: Unknown command";
             };
         }
 
         return response;
+    }
+
+    private String handleReplConfig(List<String> commandArguments, RedisConfig redisConfig) {
+        if(commandArguments.get(1).equalsIgnoreCase("GETACK")){
+            return RedisResponseBuilder.responseBuilder(Arrays.stream("REPLCONF ACK 0".split(" ")).toList());
+        }else if(commandArguments.get(1).equalsIgnoreCase("listening-port")) {
+            System.out.println("Replica want to communicate to master through port "+ commandArguments.get(2));
+            return "+OK\r\n";
+        }else if(commandArguments.get(1).equalsIgnoreCase("capa")){
+            System.out.println("Replica want to tell the capability of replication "+ commandArguments.get(2));
+            return "+OK\r\n";
+        }
+        throw new IllegalStateException("handle repl config Not implemented for commands");
     }
 
     private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
@@ -60,6 +75,8 @@ public class CommandParser {
 
         return null;    
     }
+
+
 
     private void sendCommandToReplica() {
         PrintStream out = StreamHolder.outputStream.get();

@@ -59,10 +59,6 @@ public class Main {
                         .argument("listening-port").argument(config.getPortNumber()));
                 sendCommand(output, input, builder.command("REPLCONF")
                         .argument("capa").argument("psync2"));
-//                sendCommand(output, input, builder.command("PSYNC")
-//                        .argument("?").argument("-1"));
-
-                //
                 String psyncCmd = builder.command("PSYNC").argument("?").argument("-1").build();
                 output.write(psyncCmd.getBytes());
                 //SKIPPING "+FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0\r\n"
