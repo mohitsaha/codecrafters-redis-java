@@ -47,7 +47,7 @@ public class CommandParser {
     }
 
     private String handleWait(List<String> commandArguments, RedisConfig redisConfig) {
-        return RedisResponseBuilder.respIntegerBuilder(0);
+        return RedisResponseBuilder.respIntegerBuilder(redisConfig.getReplicas().size());
     }
 
     private String handleReplConfig(List<String> commandArguments, RedisConfig redisConfig) {
