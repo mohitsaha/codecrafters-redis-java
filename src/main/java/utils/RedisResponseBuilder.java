@@ -9,6 +9,9 @@ public class RedisResponseBuilder {
         System.out.println(res);
         return res;
     }
+    public static String respIntegerBuilder(int num){
+        return ":"+num+"\r\n";
+    }
     public static String wrapper(String raw){
         return String.format("$%s\r\n%s\r\n",raw.length(),raw);
     }

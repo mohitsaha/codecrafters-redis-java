@@ -38,11 +38,16 @@ public class CommandParser {
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
                 case "REPLCONF" -> handleReplConfig(commandArguments,redisConfig);
                 case "PSYNC" -> handlePsync(commandArguments,redisConfig);
+                case "WAIT" -> handleWait(commandArguments,redisConfig);
                 default -> "ERROR: Unknown command";
             };
         }
 
         return response;
+    }
+
+    private String handleWait(List<String> commandArguments, RedisConfig redisConfig) {
+        return RedisResponseBuilder.respIntegerBuilder(0);
     }
 
     private String handleReplConfig(List<String> commandArguments, RedisConfig redisConfig) {
