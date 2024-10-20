@@ -7,10 +7,7 @@ import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -32,14 +29,13 @@ public class CommandParser {
             }
         }else {
             response = switch (command.toUpperCase()) {
-                case "PING" -> handlePing();
+                case "PING" -> handlePing(redisConfig);
                 case "ECHO" -> handleEcho(commandArguments.get(1));
                 case "GET" -> handleGET(commandArguments.get(1));
                 case "SET" -> handleSet(commandArguments,redisConfig);
                 case "CONFIG" -> handleConfig(commandArguments, redisConfig);
                 case "KEYS" -> handleKeys(commandArguments, redisConfig);
                 case "INFO" -> handleInfo(commandArguments, redisConfig);
-//                case "REPLCONF" -> "+OK\r\n";
                 case "REPLCONF" -> handleReplConfig(commandArguments,redisConfig);
                 case "PSYNC" -> handlePsync(commandArguments,redisConfig);
                 default -> "ERROR: Unknown command";
@@ -51,7 +47,7 @@ public class CommandParser {
 
     private String handleReplConfig(List<String> commandArguments, RedisConfig redisConfig) {
         if(commandArguments.get(1).equalsIgnoreCase("GETACK")){
-            return RedisResponseBuilder.responseBuilder(Arrays.stream("REPLCONF ACK 0".split(" ")).toList());
+            return RedisResponseBuilder.responseBuilder(Arrays.asList("REPLCONF","ACK",Integer.toString(Main.totalBytesProcessed)));
         }else if(commandArguments.get(1).equalsIgnoreCase("listening-port")) {
             System.out.println("Replica want to communicate to master through port "+ commandArguments.get(2));
             return "+OK\r\n";
@@ -173,6 +169,9 @@ public class CommandParser {
         }else{
             response =  database.set(cmdArgs);
         }
+        if(redisConfig != null && redisConfig.getRole() == Role.SLAVE){
+            return null;
+        }
         return response;
     }
 
@@ -180,7 +179,11 @@ public class CommandParser {
         return database.get(data);
     }
 
-    private String handlePing() {
+    private String handlePing(RedisConfig redisConfig) {
+        if(redisConfig != null && redisConfig.getRole() == Role.SLAVE){
+            return null;
+        }
+        Main.currentProcessingBytes = 0;
         return "+PONG\r\n";
     }
 

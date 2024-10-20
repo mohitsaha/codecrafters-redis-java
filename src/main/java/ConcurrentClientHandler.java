@@ -1,4 +1,5 @@
 import config.RedisConfig;
+import config.Role;
 import utils.StreamHolder;
 
 import java.io.*;
@@ -29,14 +30,16 @@ public class ConcurrentClientHandler implements Runnable{
                     System.err.println("Connection closed or no data received from the client.");
                     return;
                 }
+                Main.currentProcessingBytes += numOfElementsLine.length()+2;
                 int numOfElements = Integer.parseInt(numOfElementsLine.substring(1));
                 System.out.println("numOfElements = " + numOfElements);
                 List<String> commandArguments = new ArrayList<>();
                 for (int i = 0; i < numOfElements; i++) {
                     String argumentSizeLine = br.readLine();
-                    System.out.println("argumentSizeLine" + argumentSizeLine);
+                    Main.currentProcessingBytes += argumentSizeLine.length()+2;
                     int argumentSize = Integer.parseInt(argumentSizeLine.substring(1));
                     String argument = br.readLine();
+                    Main.currentProcessingBytes += argument.length()+2;
                     commandArguments.add(argument);
                     System.out.println("Collected argument: " + argument);
                 }
@@ -46,6 +49,8 @@ public class ConcurrentClientHandler implements Runnable{
                     out.write(response);
                     out.flush();
                 }
+                Main.totalBytesProcessed += Main.currentProcessingBytes;
+                Main.currentProcessingBytes=0;
             }
         }catch (IOException e ){
             System.err.printf("Exception while handling client :: {}", e.getMessage());

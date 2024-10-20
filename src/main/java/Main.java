@@ -16,6 +16,9 @@ import static utils.Constants.REDIS_DEFAULT_PORT;
 import static utils.RedisArgsParser.parseArgs;
 import java.util.concurrent.*;
 public class Main {
+    public static int totalBytesProcessed=0;
+    public static int currentProcessingBytes=0;
+
     public static void main(String[] args) {
         ServerSocket serverSocket;
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
