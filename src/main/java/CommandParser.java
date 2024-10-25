@@ -2,21 +2,30 @@ import config.Role;
 import db.Database;
 import config.RedisConfig;
 import db.InMemoryDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.StreamHolder;
 import utils.RedisCommandBuilder;
 import utils.RedisResponseBuilder;
 
 import java.io.*;
+import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static utils.RedisResponseBuilder.responseBuilder;
 import static utils.RedisResponseBuilder.wrapper;
-
+import java.util.concurrent.*;
 public class CommandParser {
+    private static final Logger logger = LoggerFactory.getLogger(CommandParser.class);
     private final Database database = InMemoryDB.getInstance();
-    private static BlockingQueue<String> blockingQueue = new LinkedBlockingDeque<>();
+    private final AtomicInteger acknowledgedReplicaCount = new AtomicInteger();
     public String parseCommand(List<String> commandArguments, RedisConfig redisConfig) throws IOException {
 
         String response;
@@ -46,52 +55,81 @@ public class CommandParser {
         return response;
     }
 
-    private String handleWait(List<String> commandArguments, RedisConfig redisConfig) {
-        return RedisResponseBuilder.respIntegerBuilder(redisConfig.getReplicas().size());
+    private String handleWait(List<String> args, RedisConfig redisConfig) {
+        int expectedReplicaCount;
+        long timeOutMillis;
+        try {
+            expectedReplicaCount = Integer.parseInt(args.get(1));
+            timeOutMillis = Long.parseLong(args.get(2));
+        } catch (NumberFormatException ex) {
+            throw new RuntimeException("Invalid parameters for WAIT command");
+        }
+        Set<Socket> replicas = redisConfig.getReplicaSockets();
+        // Map each replica to a CompletableFuture representing async task
+        Stream<CompletableFuture<Void>> futures =replicas.stream()
+                .map(replica -> CompletableFuture.runAsync(() -> getAcknowledgement(replica)));
+        // If timeout is specified, set up futures to complete exceptionally after timeout
+        if (timeOutMillis > 0) {
+            futures = futures.map(future ->
+                    future.completeOnTimeout(null, timeOutMillis, TimeUnit.MILLISECONDS));
+        }
+        try {
+            // Wait for all futures to complete
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        int ackCount = acknowledgedReplicaCount.intValue();
+//        logger.error("why ackCount are : " + ackCount);
+        acknowledgedReplicaCount.set(0);
+        return RedisResponseBuilder.respIntegerBuilder(ackCount);
+    }
+
+    private void getAcknowledgement(Socket replicaSocket) {
+        try {
+            DataInputStream inputStream = new DataInputStream(replicaSocket.getInputStream());
+            OutputStream outputStream = replicaSocket.getOutputStream();
+            String ackCommand = RedisResponseBuilder.responseBuilder(List.of("REPLCONF", "GETACK", "*"));
+            outputStream.write(ackCommand.getBytes());
+            outputStream.flush();
+            logger.info("Ack command sent: {}", Arrays.stream(ackCommand.split("\r\n")).collect(Collectors.toList()));
+            // it's not coming in this input response
+            String ackResponse = Main.readResponse(replicaSocket.getInputStream());
+            logger.info("Ack response received: {}", ackResponse);
+            acknowledgedReplicaCount.incrementAndGet();
+        } catch (IOException e) {
+            logger.error("Acknowledgement failed: {}", e.getMessage());
+        }
     }
 
     private String handleReplConfig(List<String> commandArguments, RedisConfig redisConfig) {
         if(commandArguments.get(1).equalsIgnoreCase("GETACK")){
             return RedisResponseBuilder.responseBuilder(Arrays.asList("REPLCONF","ACK",Integer.toString(Main.totalBytesProcessed)));
         }else if(commandArguments.get(1).equalsIgnoreCase("listening-port")) {
-            System.out.println("Replica want to communicate to master through port "+ commandArguments.get(2));
+            logger.info("Replica want to communicate to master through this port "+ commandArguments.get(2));
             return "+OK\r\n";
         }else if(commandArguments.get(1).equalsIgnoreCase("capa")){
-            System.out.println("Replica want to tell the capability of replication "+ commandArguments.get(2));
+            logger.info("Replica want to tell the capability of replication "+ commandArguments.get(2));
             return "+OK\r\n";
+        }else if(commandArguments.get(1).equalsIgnoreCase("ACK")) {
+            logger.info("number of bytes Processed are : " + commandArguments.get(2));
+            //should update the offset as master
+            logger.warn("ack replicas count are : "+acknowledgedReplicaCount.incrementAndGet());
+            return null;
         }
-        throw new IllegalStateException("handle repl config Not implemented for commands");
+        throw new IllegalStateException("handle repl config Not implemented for commands" + commandArguments);
     }
 
     private String handlePsync(List<String> commandArguments, RedisConfig redisConfig) {
         PrintStream out = StreamHolder.outputStream.get();
         redisConfig.addReplicaOutputStream(StreamHolder.outputStream.get());
+        redisConfig.addReplicaSocket(StreamHolder.socket.get());
         System.out.println("Redis Replicas are : "+redisConfig.getReplicas());
         String fullResyncResponse = "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n";
         out.print(fullResyncResponse);
         out.flush();
         sendEmptyRDBFile();
-        //sendBufferToCommand
-        //sendCommandToReplica();
-
         return null;    
-    }
-
-
-
-    private void sendCommandToReplica() {
-        PrintStream out = StreamHolder.outputStream.get();
-        try {
-            while (true) {
-                String element = blockingQueue.take();
-                out.write(element.getBytes());
-                out.flush();
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void sendEmptyRDBFile() {
@@ -157,7 +195,7 @@ public class CommandParser {
         if(redisConfig != null && redisConfig.getRole() == Role.MASTER){
                 //Sending Data to replicas
             Set<OutputStream> replicaOS = redisConfig.getReplicas();
-            System.out.println("Sending command from Master");
+            logger.info("Sending command from Master");
             replicaOS.forEach(outputStream -> {
                 String response = RedisResponseBuilder.responseBuilder(cmdArgs);
                 try {

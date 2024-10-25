@@ -1,6 +1,7 @@
 package config;
 
 import java.io.OutputStream;
+import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ public class RedisConfig {
         return replicaOfHost;
     }
     private volatile Set<OutputStream> replicas = new HashSet<>();
+    private volatile Set<Socket> replicasSockets = new HashSet<>();
 
     public void addReplicaOutputStream(OutputStream outputStream){
         replicas.add(outputStream);
@@ -37,6 +39,14 @@ public class RedisConfig {
         this.role = role;
     }
     private RedisConfig() {}
+
+    public void addReplicaSocket(Socket socket) {
+        replicasSockets.add(socket);
+    }
+    public Set<Socket> getReplicaSockets(){
+        return replicasSockets;
+    }
+
     public static class Builder {
         private String directory;
         private String dbFilename;

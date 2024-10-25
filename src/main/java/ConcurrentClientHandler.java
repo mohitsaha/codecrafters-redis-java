@@ -1,5 +1,7 @@
 import config.RedisConfig;
 import config.Role;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.StreamHolder;
 
 import java.io.*;
@@ -7,6 +9,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 public class ConcurrentClientHandler implements Runnable{
+    private static final Logger logger = LoggerFactory.getLogger(ConcurrentClientHandler.class);
     private Socket clientSocket;
     private RedisConfig redisConfig;
     CommandParser commandParser = new CommandParser();
@@ -24,15 +27,18 @@ public class ConcurrentClientHandler implements Runnable{
             BufferedWriter out = new BufferedWriter(out_writer);
             StreamHolder.outputStream.set(new PrintStream(clientSocket.getOutputStream()));
             StreamHolder.inputStream.set(clientSocket.getInputStream());
+            StreamHolder.socket.set(clientSocket);
+            //but in this input response
+            logger.info("one client, handling command one by one");
             while(true) {
                 String numOfElementsLine = br.readLine();
                 if (numOfElementsLine == null) {
-                    System.err.println("Connection closed or no data received from the client.");
+                    logger.info("Connection closed or no data received from the client.");
                     return;
                 }
                 Main.currentProcessingBytes += numOfElementsLine.length()+2;
                 int numOfElements = Integer.parseInt(numOfElementsLine.substring(1));
-                System.out.println("numOfElements = " + numOfElements);
+                logger.info("numOfElements = " + numOfElements);
                 List<String> commandArguments = new ArrayList<>();
                 for (int i = 0; i < numOfElements; i++) {
                     String argumentSizeLine = br.readLine();
@@ -41,9 +47,9 @@ public class ConcurrentClientHandler implements Runnable{
                     String argument = br.readLine();
                     Main.currentProcessingBytes += argument.length()+2;
                     commandArguments.add(argument);
-                    System.out.println("Collected argument: " + argument);
+                    logger.info("Collected argument: " + argument);
                 }
-                System.out.println("commands are : " + commandArguments);
+                logger.info("commands are : " + commandArguments);
                 String response = commandParser.parseCommand(commandArguments,redisConfig);
                 if (response != null) {
                     out.write(response);
@@ -53,14 +59,14 @@ public class ConcurrentClientHandler implements Runnable{
                 Main.currentProcessingBytes=0;
             }
         }catch (IOException e ){
-            System.err.printf("Exception while handling client :: {}", e.getMessage());
+            logger.error("Exception while handling client :: {}", e.getMessage());
         }finally{
             try {
                 if (clientSocket != null) {
                     clientSocket.close();
                 }
             } catch (IOException e) {
-                System.out.println("IOException: " + e.getMessage());
+                logger.error("IOException: " + e.getMessage());
             }
         }
     }
