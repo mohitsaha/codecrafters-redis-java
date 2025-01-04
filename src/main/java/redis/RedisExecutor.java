@@ -80,11 +80,22 @@ public class RedisExecutor {
             case DEL -> del(restParams);
             case CONFIG -> config(restParams);
             case KEYS -> keys();
+            case TYPE -> type(restParams);
             case INFO -> info(restParams);
             case REPLCONF -> replconf(restParams);
             case PSYNC -> psync(restParams);
             case WAIT -> wait(restParams);
         };
+    }
+
+    private List<RedisResultData> type(List<String> restParams) {
+        var findResult = RedisRepository.get(restParams.get(0));
+        if (findResult == null) {
+            findResult = "none";
+        }else{
+            findResult = "string";
+        }
+        return List.of(new RedisResultData(RedisDataType.SIMPLE_STRINGS,findResult));
     }
 
     private List<RedisResultData> ping() {

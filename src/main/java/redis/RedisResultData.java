@@ -1,8 +1,11 @@
 package redis;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public record RedisResultData(
         RedisDataType redisDataType,
         String data
@@ -34,6 +37,7 @@ public record RedisResultData(
         var result = new StringBuilder();
 
         for (var redisResultData : resultDataList) {
+            log.info("checking value  " + redisResultData);
             result.append(redisResultData.redisDataType().getFirstByte());
             result.append(redisResultData.data());
             if (redisResultData.redisDataType.isTrailing()) {
