@@ -1,19 +1,22 @@
 package redis;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum RedisDataType {
-    SIMPLE_STRINGS("+", true),
-    SIMPLE_ERROR("-", true),
-    ARRAYS("*", true),
-    BULK_STRINGS("$", true),
-    INTEGER(":", true),
-    EMPTY_TYPE("", true),
-    EMPTY_TYPE_WITHOUT_TRAILING("", false);
+    NONE("none"),
+    STRING("string"),
+    LIST("list"),
+    SET("set"),
+    ZSET("zset"),
+    HASH("hash"),
+    STREAM("stream");
 
-    private final String firstByte;
-    private final boolean isTrailing;
+    private final String value;
+
+    RedisDataType(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
 }

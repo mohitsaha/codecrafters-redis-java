@@ -7,16 +7,16 @@ import java.util.List;
 
 @Slf4j
 public record RedisResultData(
-        RedisDataType redisDataType,
+        RespType respType,
         String data
 ) {
-    public static List<RedisResultData> getSimpleResultData(RedisDataType redisDataType, String data) {
-        return List.of(new RedisResultData(redisDataType, data));
+    public static List<RedisResultData> getSimpleResultData(RespType respType, String data) {
+        return List.of(new RedisResultData(respType, data));
     }
 
     public static List<RedisResultData> getBulkStringData(String data) {
-        var sizeData = new RedisResultData(RedisDataType.BULK_STRINGS, data == null ? "-1" : String.valueOf(data.length()));
-        var strData = new RedisResultData(RedisDataType.EMPTY_TYPE, data);
+        var sizeData = new RedisResultData(RespType.BULK_STRINGS, data == null ? "-1" : String.valueOf(data.length()));
+        var strData = new RedisResultData(RespType.EMPTY_TYPE, data);
 
         return data == null ? List.of(sizeData) : List.of(sizeData, strData);
     }
@@ -25,7 +25,7 @@ public record RedisResultData(
         var result = new ArrayList<RedisResultData>();
 
         // array size data
-        result.add(new RedisResultData(RedisDataType.ARRAYS, String.valueOf(args.length)));
+        result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(args.length)));
         for (var str : args) {
             result.addAll(getBulkStringData(str));
         }
@@ -38,9 +38,9 @@ public record RedisResultData(
 
         for (var redisResultData : resultDataList) {
             log.info("checking value  " + redisResultData);
-            result.append(redisResultData.redisDataType().getFirstByte());
+            result.append(redisResultData.respType().getFirstByte());
             result.append(redisResultData.data());
-            if (redisResultData.redisDataType.isTrailing()) {
+            if (redisResultData.respType.isTrailing()) {
                 result.append("\r\n");
             }
         }

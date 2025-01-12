@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +16,8 @@ public class RedisRepository {
     private static final Map<String, String> REDIS_CONFIG_MAP = new HashMap<>();
     private static final Map<String, String> REDIS_REPLICATION_INFO_MAP = new HashMap<>();
     private static final Map<String, List<String>> REDIS_REPLICATION_CONFIG_MAP = new HashMap<>();
+    private static final Map<String, RedisDataType> REDIS_TYPE_MAP = new HashMap<>();
+    private static final Map<String, TreeMap<String, Map<String, String>>> REDIS_STREAM_MAP = new HashMap<>();
 
     private RedisRepository() {
 
@@ -34,6 +37,19 @@ public class RedisRepository {
         return REDIS_MAP.getOrDefault(key, null);
     }
 
+    public static String getType(String key){
+        //Checking Stream by Stream ID
+        if (REDIS_STREAM_MAP.containsKey(key)) {
+            return RedisDataType.STREAM.toString();
+        }
+        //Checking if it's in Main inMemory store
+        if (REDIS_TYPE_MAP.containsKey(key)) {
+            return REDIS_TYPE_MAP.get(key).toString();
+        }
+
+        return null;
+    }
+
     public static List<String> getKeys() {
         return REDIS_MAP.keySet().stream().toList();
     }
@@ -44,6 +60,7 @@ public class RedisRepository {
 
     public static void set(String key, String value) {
         REDIS_MAP.put(key, value);
+        REDIS_TYPE_MAP.put(key, RedisDataType.STRING);
     }
 
     public static void del(String key) {
@@ -94,5 +111,24 @@ public class RedisRepository {
 
     public static List<String> getReplicationConfig(String key) {
         return REDIS_REPLICATION_CONFIG_MAP.getOrDefault(key, null);
+    }
+
+    public static String xadd(String key,String entryId, Map<String, String> fields) {
+        if (!REDIS_STREAM_MAP.containsKey(key)) {
+            REDIS_STREAM_MAP.put(key, new TreeMap<>());
+            REDIS_TYPE_MAP.put(key, RedisDataType.STREAM);
+        }
+
+
+        if(entryId.equals("*")) {
+             entryId = generateStreamId();
+        }
+        REDIS_STREAM_MAP.get(key).put(entryId, fields);
+
+        return entryId;
+    }
+
+    private static String generateStreamId() {
+        return String.format("%d-0", System.currentTimeMillis());
     }
 }

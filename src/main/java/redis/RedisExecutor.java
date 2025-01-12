@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import rdb.RdbUtil;
 import replication.MasterConnectionHolder;
+
+import static redis.RedisResultData.getBulkStringData;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -71,6 +75,7 @@ public class RedisExecutor {
     private List<RedisResultData> executeCommand(List<String> inputParams) {
         var command = RedisCommand.parseCommand(inputParams.getFirst());
         var restParams = inputParams.subList(1, inputParams.size());
+        //Command is removed and then passed to method
 
         return switch (command) {
             case PING -> ping();
@@ -85,21 +90,42 @@ public class RedisExecutor {
             case REPLCONF -> replconf(restParams);
             case PSYNC -> psync(restParams);
             case WAIT -> wait(restParams);
+            case XADD -> xadd(restParams);
         };
     }
 
+    private List<RedisResultData> xadd(List<String> restParams) {
+        String steamKey = restParams.getFirst();
+        String streamID = restParams.get(1);
+        List<String> subList  = restParams.subList(2, restParams.size());
+        Map<String, String> map = new HashMap<>();
+
+        // Ensure the list has an even number of elements
+        if (subList.size() % 2 != 0) {
+            throw new IllegalArgumentException("List size must be even. Each key must have a corresponding value.");
+        }
+
+        for (int i = 0; i < subList.size(); i += 2) {
+            String key = subList.get(i);
+            String value = subList.get(i + 1);
+            map.put(key, value);
+        }
+        String resultStreamID = RedisRepository.xadd(steamKey, streamID, map);
+        log.info("resultStreamID: {}", resultStreamID);
+        return getBulkStringData(resultStreamID);
+    }
+
     private List<RedisResultData> type(List<String> restParams) {
-        var findResult = RedisRepository.get(restParams.get(0));
+        var findResult = RedisRepository.getType(restParams.getFirst());
         if (findResult == null) {
             findResult = "none";
-        }else{
-            findResult = "string";
         }
-        return List.of(new RedisResultData(RedisDataType.SIMPLE_STRINGS,findResult));
+        log.info("find result of Type: {}", findResult);
+        return List.of(new RedisResultData(RespType.SIMPLE_STRINGS,findResult));
     }
 
     private List<RedisResultData> ping() {
-        return List.of(new RedisResultData(RedisDataType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_PONG));
+        return List.of(new RedisResultData(RespType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_PONG));
     }
 
     private List<RedisResultData> echo(List<String> args) {
@@ -107,7 +133,7 @@ public class RedisExecutor {
             throw new RedisExecuteException("execute error - echo need exact 1 args");
         }
 
-        return RedisResultData.getBulkStringData(args.getFirst());
+        return getBulkStringData(args.getFirst());
     }
 
     private List<RedisResultData> get(List<String> args) {
@@ -118,7 +144,7 @@ public class RedisExecutor {
         var key = args.getFirst();
         var findResult = RedisRepository.get(key);
 
-        return RedisResultData.getBulkStringData(findResult);
+        return getBulkStringData(findResult);
     }
 
     private List<RedisResultData> set(List<String> args) {
@@ -144,14 +170,14 @@ public class RedisExecutor {
             RedisRepository.expireWithExpireTime(key, expireTime.get());
         }
 
-        return RedisResultData.getSimpleResultData(RedisDataType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_OK);
+        return RedisResultData.getSimpleResultData(RespType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_OK);
     }
 
     private List<RedisResultData> del(List<String> args) {
         var key = args.getFirst();
 
         RedisRepository.del(key);
-        return RedisResultData.getSimpleResultData(RedisDataType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_OK);
+        return RedisResultData.getSimpleResultData(RespType.SIMPLE_STRINGS, CommonConstant.REDIS_OUTPUT_OK);
     }
 
     private List<RedisResultData> config(List<String> args) {
@@ -187,7 +213,7 @@ public class RedisExecutor {
             result.append("\n");
         }
 
-        return RedisResultData.getBulkStringData(result.toString());
+        return getBulkStringData(result.toString());
     }
 
     private List<RedisResultData> replconf(List<String> restParam) {
@@ -216,7 +242,7 @@ public class RedisExecutor {
                 log.info("ipAddress: {}, innerPort: {}, port:{}", host, connectionPort, port);
                 // TODO: Will be used... maybe?
             }
-            return RedisResultData.getSimpleResultData(RedisDataType.SIMPLE_STRINGS, "OK");
+            return RedisResultData.getSimpleResultData(RespType.SIMPLE_STRINGS, "OK");
         }
         return null;
     }
@@ -225,9 +251,9 @@ public class RedisExecutor {
         var replId = RedisRepository.getReplicationSetting("master_replid");
         var offset = RedisRepository.getReplicationSetting("master_repl_offset");
 
-        var result = RedisResultData.getSimpleResultData(RedisDataType.SIMPLE_STRINGS, "FULLRESYNC %s %s".formatted(replId, offset));
+        var result = RedisResultData.getSimpleResultData(RespType.SIMPLE_STRINGS, "FULLRESYNC %s %s".formatted(replId, offset));
         var message = Base64.getDecoder().decode(RdbUtil.EMPTY_RDB);
-        var sizeData = new RedisResultData(RedisDataType.BULK_STRINGS, String.valueOf(message.length));
+        var sizeData = new RedisResultData(RespType.BULK_STRINGS, String.valueOf(message.length));
 
         result = Stream.concat(result.stream(), Stream.of(sizeData)).toList();
 
@@ -255,6 +281,6 @@ public class RedisExecutor {
         var needReplica = Integer.parseInt(args.getFirst());
         var timeLimit = Integer.parseInt(args.getLast());
 
-        return RedisResultData.getSimpleResultData(RedisDataType.INTEGER, String.valueOf(MasterConnectionHolder.getFullySyncedReplicaCount(needReplica, timeLimit)));
+        return RedisResultData.getSimpleResultData(RespType.INTEGER, String.valueOf(MasterConnectionHolder.getFullySyncedReplicaCount(needReplica, timeLimit)));
     }
 }

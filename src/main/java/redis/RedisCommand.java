@@ -18,12 +18,16 @@ public enum RedisCommand {
     CONFIG(true, false),
     KEYS(true, false),
     TYPE(true,false),
+
     // Replication Command
     INFO(true, false),
     PING(true, false),
     REPLCONF(true, false),
     PSYNC(false, false),
-    WAIT(true, false);
+    WAIT(true, false),
+
+    //Stream command
+    XADD(true,true);
 
     private static final Map<String, RedisCommand> commandMap = Arrays.stream(RedisCommand.values())
             .collect(Collectors.toMap(redisCommand -> redisCommand.name().toLowerCase(), it -> it));
