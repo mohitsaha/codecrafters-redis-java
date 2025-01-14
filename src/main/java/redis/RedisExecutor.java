@@ -51,7 +51,7 @@ public class RedisExecutor {
             return true;
         } catch (RuntimeException e) {
             log.warn("command execute error - inputParams: {}", inputParams, e);
-            returnCommonErrorMessage(null);
+            returnCommonErrorMessage(e.getMessage());
             return false;
         } catch (IOException e) {
             log.error("IOException", e);

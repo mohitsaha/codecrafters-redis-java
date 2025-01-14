@@ -2,12 +2,11 @@ package redis;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
+
+import static redis.CommonConstant.REDIS_MINIMUM_ENTRY_KEY_Allowed;
 
 @Slf4j
 public class RedisRepository {
@@ -114,12 +113,18 @@ public class RedisRepository {
     }
 
     public static String xadd(String key,String entryId, Map<String, String> fields) {
+        if (entryId.compareTo(REDIS_MINIMUM_ENTRY_KEY_Allowed) < 0) {
+            throw new RedisException("The ID specified in XADD must be greater than " + entryId);
+        }
         if (!REDIS_STREAM_MAP.containsKey(key)) {
             REDIS_STREAM_MAP.put(key, new TreeMap<>());
             REDIS_TYPE_MAP.put(key, RedisDataType.STREAM);
+        }else{
+            TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(key);
+            if(entryMap.containsKey(entryId) || entryMap.lastKey().compareTo(entryId) > 0) {
+                throw new RedisException("The ID specified in XADD is equal or smaller than the target stream top item");
+            }
         }
-
-
         if(entryId.equals("*")) {
              entryId = generateStreamId();
         }
