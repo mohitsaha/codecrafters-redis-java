@@ -18,6 +18,8 @@ public class RedisRepository {
     private static final Map<String, RedisDataType> REDIS_TYPE_MAP = new HashMap<>();
     private static final Map<String, TreeMap<String, Map<String, String>>> REDIS_STREAM_MAP = new HashMap<>();
 
+    //TODO change the TREEMAP<String,Map<String,String> to TreeMAP<Entry,MAP<String,String>> Entry will have seperate t
+    //TODO time and sequence number
     private RedisRepository() {
 
     }
@@ -113,27 +115,61 @@ public class RedisRepository {
     }
 
     public static String xadd(String key,String entryId, Map<String, String> fields) {
-        if (entryId.compareTo(REDIS_MINIMUM_ENTRY_KEY_Allowed) < 0) {
-            throw new RedisException("The ID specified in XADD must be greater than " + entryId);
-        }
+        //if Stream is not create one
         if (!REDIS_STREAM_MAP.containsKey(key)) {
             REDIS_STREAM_MAP.put(key, new TreeMap<>());
             REDIS_TYPE_MAP.put(key, RedisDataType.STREAM);
-        }else{
+        }
+        // if entryId contains * we dont's need to do validation
+        if(entryId.contains("*")) {
+            //Generate entryID
+            //TWO condition and "time-*" and "*"
+            if(entryId.equals("*")) {
+                //Generate time Sequence as well as time and sequenceId
+                entryId = generateFullStreamId();
+            }else{
+                entryId = generatePartialStreamId( key,entryId);
+            }
+        }
+        else{
+            //Do the validation
+            if (entryId.compareTo(REDIS_MINIMUM_ENTRY_KEY_Allowed) < 0) {
+                throw new RedisException("The ID specified in XADD must be greater than " + entryId);
+            }
             TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(key);
-            if(entryMap.containsKey(entryId) || entryMap.lastKey().compareTo(entryId) > 0) {
+            if(entryMap.containsKey(entryId) || (!entryMap.isEmpty() && entryMap.lastKey().compareTo(entryId) > 0)) {
                 throw new RedisException("The ID specified in XADD is equal or smaller than the target stream top item");
             }
         }
-        if(entryId.equals("*")) {
-             entryId = generateStreamId();
-        }
         REDIS_STREAM_MAP.get(key).put(entryId, fields);
-
         return entryId;
     }
 
-    private static String generateStreamId() {
+    private static String generatePartialStreamId(String key,String entryId) {
+        TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(key);
+        //Get last sequence of entry
+        String[] elements = entryId.split("-");
+        String time = elements[0];
+        String lastSequence = "-1";
+        if (!entryMap.isEmpty()) {
+            // Get all entries that start with this time
+            String lastMatchingKey = entryMap.floorKey(time + "-\uffff");
+            if (lastMatchingKey != null && lastMatchingKey.startsWith(time + "-")) {
+                // Extract the sequence number
+                String[] lastElements = lastMatchingKey.split("-");
+                lastSequence = lastElements[1];
+            }
+        }
+        if(time.equals("0") && lastSequence.equals("-1")) {
+            lastSequence = "0";
+        }
+        int nextSequence = Integer.parseInt(lastSequence) + 1;
+        entryId = time + "-" + nextSequence;
+        log.info("Generated Stream entry id: {}", entryId);
+        return entryId;
+    }
+
+    private static String generateFullStreamId() {
         return String.format("%d-0", System.currentTimeMillis());
     }
 }
