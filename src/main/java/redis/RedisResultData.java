@@ -14,6 +14,19 @@ public record RedisResultData(
         return List.of(new RedisResultData(respType, data));
     }
 
+    public static List<RedisResultData> getArrayDataFromXrange(List<XRangeEntry> xrangeEntries) {
+        var result = new ArrayList<RedisResultData>();
+        result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(xrangeEntries.size())));
+        for(var entry : xrangeEntries){
+            String entryID = entry.getEntryId();
+            List<String> fields = entry.getFields();
+            result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(2)));
+            result.addAll(getBulkStringData(entryID));
+            result.addAll(getArrayData(fields.toArray(new String[0])));
+        }
+        return result;
+    }
+
     public static List<RedisResultData> getBulkStringData(String data) {
         var sizeData = new RedisResultData(RespType.BULK_STRINGS, data == null ? "-1" : String.valueOf(data.length()));
         var strData = new RedisResultData(RespType.EMPTY_TYPE, data);
@@ -29,7 +42,6 @@ public record RedisResultData(
         for (var str : args) {
             result.addAll(getBulkStringData(str));
         }
-
         return result;
     }
 

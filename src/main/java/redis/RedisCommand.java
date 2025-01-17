@@ -27,8 +27,8 @@ public enum RedisCommand {
     WAIT(true, false),
 
     //Stream command
-    XADD(true,true);
-
+    XADD(true,true),
+    XRANGE(true,false);
     private static final Map<String, RedisCommand> commandMap = Arrays.stream(RedisCommand.values())
             .collect(Collectors.toMap(redisCommand -> redisCommand.name().toLowerCase(), it -> it));
 

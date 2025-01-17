@@ -172,4 +172,26 @@ public class RedisRepository {
     private static String generateFullStreamId() {
         return String.format("%d-0", System.currentTimeMillis());
     }
+
+    public static List<XRangeEntry> getEntriesInRange(String steamKey, String start, String end) {
+        TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(steamKey);
+        if (entryMap == null || entryMap.isEmpty()) {
+            throw new RedisException("Stream does not exist");
+        }
+        // Handle special start/end cases
+        String effectiveStart = start.equals("-") ? entryMap.firstKey() : start;
+        String effectiveEnd = end.equals("+") ? entryMap.lastKey() : end;
+
+        NavigableMap<String, Map<String, String>> rangeMap = entryMap.subMap(
+                effectiveStart, true,
+                effectiveEnd, true
+        );
+
+        return rangeMap.entrySet().stream()
+                .map(entry -> new XRangeEntry(
+                        entry.getKey(),
+                        entry.getValue()
+                ))
+                .toList();
+    }
 }

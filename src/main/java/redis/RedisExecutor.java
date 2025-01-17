@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import rdb.RdbUtil;
 import replication.MasterConnectionHolder;
 
+import static redis.RedisResultData.getArrayDataFromXrange;
 import static redis.RedisResultData.getBulkStringData;
 
 @Slf4j
@@ -91,7 +92,17 @@ public class RedisExecutor {
             case PSYNC -> psync(restParams);
             case WAIT -> wait(restParams);
             case XADD -> xadd(restParams);
+            case XRANGE-> xrange(restParams);
         };
+    }
+
+    private List<RedisResultData> xrange(List<String> restParams) {
+        String steamKey = restParams.getFirst();
+        String start = restParams.get(1);
+        String end = restParams.get(2);
+        List<XRangeEntry> xRangeEntries = RedisRepository.getEntriesInRange(steamKey,start,end);
+        log.info("Range entries: {}", xRangeEntries);
+        return getArrayDataFromXrange(xRangeEntries);
     }
 
     private List<RedisResultData> xadd(List<String> restParams) {
