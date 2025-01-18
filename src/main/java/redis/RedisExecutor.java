@@ -4,10 +4,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -17,8 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import rdb.RdbUtil;
 import replication.MasterConnectionHolder;
 
-import static redis.RedisResultData.getArrayDataFromXrange;
-import static redis.RedisResultData.getBulkStringData;
+import static redis.RedisResultData.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -93,7 +89,24 @@ public class RedisExecutor {
             case WAIT -> wait(restParams);
             case XADD -> xadd(restParams);
             case XRANGE-> xrange(restParams);
+            case XREAD -> xread(restParams);
         };
+    }
+
+    private List<RedisResultData> xread(List<String> restParams) {
+        if(restParams.getFirst().equalsIgnoreCase("STREAMS")) {
+            Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
+            List<String> StreamsKeySequence =  restParams.subList(1,restParams.size());
+            int size = StreamsKeySequence.size();
+            for(int i = 0; i < size/2; i++) {
+                StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
+            }
+            log.info("StreamsKeySequenceMap: {}", StreamsKeySequenceMap);
+            List<XReadEntry> ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap);
+            log.info("Xread entries : {}", ans);
+            return getArrayDataFromXReadEntries(ans);
+        }
+        throw new RedisExecuteException("this xread option is not supported yet");
     }
 
     private List<RedisResultData> xrange(List<String> restParams) {

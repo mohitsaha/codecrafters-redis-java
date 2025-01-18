@@ -194,4 +194,25 @@ public class RedisRepository {
                 ))
                 .toList();
     }
+
+    public static List<XReadEntry> getXReadEntry(Map<String,String> StreamsKeySequenceMap) {
+        List<XReadEntry> ans = new ArrayList<>();
+        for (Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
+            String streamKey = entry.getKey();
+            String sequence = entry.getValue();
+            TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
+            NavigableMap<String, Map<String, String>> greaterThanSequence = entryMap.tailMap(sequence, false);
+            XReadEntry.Builder xReadEntrybuilder = new XReadEntry.Builder();
+            XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
+            for(Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()){
+                singleStreamEntrybuilder.sequence(entries.getKey());
+                for(Map.Entry<String, String> field : entries.getValue().entrySet()){
+                    singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+                }
+                XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
+                ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
+            }
+        }
+        return ans;
+    }
 }

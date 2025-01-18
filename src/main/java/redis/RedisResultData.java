@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 @Slf4j
 public record RedisResultData(
@@ -25,6 +27,23 @@ public record RedisResultData(
             result.addAll(getArrayData(fields.toArray(new String[0])));
         }
         return result;
+    }
+    public static List<RedisResultData> getArrayDataFromXReadEntries(List<XReadEntry> xreadEntries ) {
+       List<RedisResultData> result = new ArrayList<>();
+       result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(xreadEntries.size())));
+       for(var entry : xreadEntries){
+           result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(2)));
+           result.addAll(getBulkStringData(entry.getStreamKey()));
+           result.add(new RedisResultData(RespType.ARRAYS,String.valueOf(entry.getEntries().size())));
+           result.add(new RedisResultData(RespType.ARRAYS, String.valueOf(2)));
+           for(var singleentry : entry.getEntries()){
+               result.addAll(getBulkStringData(singleentry.getSequence()));
+               Map<String,String> fieldsMap = singleentry.getFields();
+               List<String> fields = fieldsMap.entrySet().stream().flatMap(e -> Stream.of(e.getKey(), e.getValue())).toList();
+               result.addAll(getArrayData(fields.toArray(new String[0])));
+           }
+       }
+       return result;
     }
 
     public static List<RedisResultData> getBulkStringData(String data) {
