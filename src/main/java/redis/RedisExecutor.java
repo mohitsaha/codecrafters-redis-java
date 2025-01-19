@@ -115,7 +115,7 @@ public class RedisExecutor {
             ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap,null);
         }
         log.info("Xread entries : {}", ans);
-        if(ans == null){
+        if(ans == null || ans.isEmpty()){
             return getBulkStringData(null);
         }
         return getArrayDataFromXReadEntries(ans);

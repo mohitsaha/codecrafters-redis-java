@@ -226,10 +226,6 @@ public class RedisRepository {
                 Thread.currentThread().interrupt();
                 return ans;
             }
-            if(System.currentTimeMillis() > startTime + block){
-                return null;
-            }
-
         } while (block == 0 || System.currentTimeMillis() < startTime + block);
 
         return ans;
