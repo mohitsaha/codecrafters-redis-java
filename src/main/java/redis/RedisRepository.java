@@ -7,6 +7,8 @@ import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 
 import static redis.CommonConstant.REDIS_MINIMUM_ENTRY_KEY_Allowed;
+import static redis.RedisResultData.getBulkStringData;
+import static redis.RedisResultData.getSimpleResultData;
 
 @Slf4j
 public class RedisRepository {
@@ -195,24 +197,41 @@ public class RedisRepository {
                 .toList();
     }
 
-    public static List<XReadEntry> getXReadEntry(Map<String,String> StreamsKeySequenceMap) {
+    public static List<XReadEntry> getXReadEntry(Map<String, String> StreamsKeySequenceMap, Long block) {
         List<XReadEntry> ans = new ArrayList<>();
-        for (Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
-            String streamKey = entry.getKey();
-            String sequence = entry.getValue();
-            TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
-            NavigableMap<String, Map<String, String>> greaterThanSequence = entryMap.tailMap(sequence, false);
-            XReadEntry.Builder xReadEntrybuilder = new XReadEntry.Builder();
-            XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
-            for(Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()){
-                singleStreamEntrybuilder.sequence(entries.getKey());
-                for(Map.Entry<String, String> field : entries.getValue().entrySet()){
-                    singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+        long startTime = System.currentTimeMillis();
+        do {
+            for (Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
+                String streamKey = entry.getKey();
+                String sequence = entry.getValue();
+                TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
+                NavigableMap<String, Map<String, String>> greaterThanSequence = entryMap.tailMap(sequence, false);
+                XReadEntry.Builder xReadEntrybuilder = new XReadEntry.Builder();
+                XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
+                for(Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()) {
+                    singleStreamEntrybuilder.sequence(entries.getKey());
+                    for(Map.Entry<String, String> field : entries.getValue().entrySet()) {
+                        singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+                    }
+                    XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
+                    ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
                 }
-                XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
-                ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
             }
-        }
+            if (block == null || !ans.isEmpty()) {
+                return ans;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return ans;
+            }
+            if(System.currentTimeMillis() > startTime + block){
+                return null;
+            }
+
+        } while (block == 0 || System.currentTimeMillis() < startTime + block);
+
         return ans;
     }
 }

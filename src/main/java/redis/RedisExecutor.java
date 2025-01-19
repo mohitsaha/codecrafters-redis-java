@@ -94,19 +94,31 @@ public class RedisExecutor {
     }
 
     private List<RedisResultData> xread(List<String> restParams) {
-        if(restParams.getFirst().equalsIgnoreCase("STREAMS")) {
-            Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
-            List<String> StreamsKeySequence =  restParams.subList(1,restParams.size());
-            int size = StreamsKeySequence.size();
-            for(int i = 0; i < size/2; i++) {
-                StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
-            }
-            log.info("StreamsKeySequenceMap: {}", StreamsKeySequenceMap);
-            List<XReadEntry> ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap);
-            log.info("Xread entries : {}", ans);
-            return getArrayDataFromXReadEntries(ans);
+        boolean isBlock = false;
+        Long blockTime = null;
+        if(restParams.getFirst().equalsIgnoreCase("BLOCK")){
+            isBlock = true;
+            blockTime = Long.parseLong(restParams.get(1));
+            restParams = restParams.subList(2,restParams.size());
         }
-        throw new RedisExecuteException("this xread option is not supported yet");
+        Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
+        List<String> StreamsKeySequence =  restParams.subList(1,restParams.size());
+        int size = StreamsKeySequence.size();
+        for(int i = 0; i < size/2; i++) {
+            StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
+        }
+        log.info("StreamsKeySequenceMap: {}", StreamsKeySequenceMap);
+        List<XReadEntry> ans;
+        if(isBlock){
+            ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap,blockTime);
+        }else{
+            ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap,null);
+        }
+        log.info("Xread entries : {}", ans);
+        if(ans == null){
+            return getBulkStringData(null);
+        }
+        return getArrayDataFromXReadEntries(ans);
     }
 
     private List<RedisResultData> xrange(List<String> restParams) {
