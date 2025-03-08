@@ -197,27 +197,100 @@ public class RedisRepository {
                 .toList();
     }
 
-    public static List<XReadEntry> getXReadEntry(Map<String, String> StreamsKeySequenceMap, Long block) {
+    public static List<XReadEntry> getXReadEntry(List<String> StreamsKeySequence) {
+        Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
+        int size = StreamsKeySequence.size();
+        for(int i = 0; i < size/2; i++) {
+            StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
+        }
+        log.info("StreamsKeySequenceMap: {}", StreamsKeySequenceMap);
+        //this define the stream with timestamps
         List<XReadEntry> ans = new ArrayList<>();
+        for (Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
+            String streamKey = entry.getKey();
+            String sequence = entry.getValue();
+            TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
+            NavigableMap<String, Map<String, String>> greaterThanSequence = entryMap.tailMap(sequence, false);
+            XReadEntry.Builder xReadEntrybuilder = new XReadEntry.Builder();
+            XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
+            for(Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()) {
+                singleStreamEntrybuilder.sequence(entries.getKey());
+                for(Map.Entry<String, String> field : entries.getValue().entrySet()) {
+                    singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+                }
+                XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
+                ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
+            }
+        }
+        return ans;
+    }
+
+    public static List<XReadEntry> getXReadEntryBlocking(List<String> StreamsKeySequence, Long block) {
+        //how Blocks can be used
+        //XREAD BLOCK 5000 STREAMS | my_stream $	until | we already extracted
+        //XREAD BLOCK 5000 STREAMS | orders payments $ $  until | we already Extracted
+
+//        if(block == 0){//Block indefintely
+//
+////            if(timestamp == '$'){ only want new entries for this
+////     give me newer
+////            }
+//        }
+        Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
+        int size = StreamsKeySequence.size();
+        for(int i = 0; i < size/2; i++) {
+            StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
+        }
+        log.info("StreamsKeySequenceMap blocking : {}", StreamsKeySequenceMap);
+        List<XReadEntry> ans = new ArrayList<>();
+        Map<String,Integer> streamKeyToMetaData = new LinkedHashMap<>();
+        Map<String,String> streamKeyToMetaDataLastEntry = new LinkedHashMap<>();
+        for(Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
+            String streamKey = entry.getKey();
+            TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
+            streamKeyToMetaData.put(streamKey,entryMap.size());
+            streamKeyToMetaDataLastEntry.put(streamKey,entryMap.lastKey());
+        }
         long startTime = System.currentTimeMillis();
         do {
-            for (Map.Entry<String, String> entry : StreamsKeySequenceMap.entrySet()) {
-                String streamKey = entry.getKey();
-                String sequence = entry.getValue();
+            for (Map.Entry<String, String> Stream : StreamsKeySequenceMap.entrySet()) {
+                String streamKey = Stream.getKey();
+                String sequence = Stream.getValue();
                 TreeMap<String, Map<String, String>> entryMap = REDIS_STREAM_MAP.get(streamKey);
-                NavigableMap<String, Map<String, String>> greaterThanSequence = entryMap.tailMap(sequence, false);
+                NavigableMap<String, Map<String, String>> greaterThanSequence;
                 XReadEntry.Builder xReadEntrybuilder = new XReadEntry.Builder();
-                XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
-                for(Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()) {
-                    singleStreamEntrybuilder.sequence(entries.getKey());
-                    for(Map.Entry<String, String> field : entries.getValue().entrySet()) {
-                        singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+
+                if(sequence.equals("$")) {
+                    Integer originalSize = streamKeyToMetaData.get(streamKey);
+                    if(entryMap.size() > originalSize) {
+                        String lastSequence = streamKeyToMetaDataLastEntry.get(streamKey);
+                        greaterThanSequence = entryMap.tailMap(lastSequence, false);
+                        XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
+
+                        for (Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()) {
+                            singleStreamEntrybuilder.sequence(entries.getKey());
+                            for (Map.Entry<String, String> field : entries.getValue().entrySet()) {
+                                singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+                            }
+                            XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
+                            ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
+                        }
+
                     }
-                    XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
-                    ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
+                }else {
+                    greaterThanSequence = entryMap.tailMap(sequence, false);
+                    XReadEntry.SingleStreamEntry.Builder singleStreamEntrybuilder = new XReadEntry.SingleStreamEntry.Builder();
+                    for (Map.Entry<String, Map<String, String>> entries : greaterThanSequence.entrySet()) {
+                        singleStreamEntrybuilder.sequence(entries.getKey());
+                        for (Map.Entry<String, String> field : entries.getValue().entrySet()) {
+                            singleStreamEntrybuilder.addField(field.getKey(), field.getValue());
+                        }
+                        XReadEntry.SingleStreamEntry singleStreamEntry = singleStreamEntrybuilder.build();
+                        ans.add(xReadEntrybuilder.streamKey(streamKey).addEntry(singleStreamEntry).build());
+                    }
                 }
             }
-            if (block == null || !ans.isEmpty()) {
+            if (!ans.isEmpty()) {
                 return ans;
             }
             try {

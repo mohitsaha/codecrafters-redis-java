@@ -94,25 +94,24 @@ public class RedisExecutor {
     }
 
     private List<RedisResultData> xread(List<String> restParams) {
+        List<XReadEntry> ans;
         boolean isBlock = false;
         Long blockTime = null;
         if(restParams.getFirst().equalsIgnoreCase("BLOCK")){
             isBlock = true;
             blockTime = Long.parseLong(restParams.get(1));
+            //Removing Block keyword and timing
             restParams = restParams.subList(2,restParams.size());
         }
-        Map<String,String> StreamsKeySequenceMap = new LinkedHashMap<>();
-        List<String> StreamsKeySequence =  restParams.subList(1,restParams.size());
-        int size = StreamsKeySequence.size();
-        for(int i = 0; i < size/2; i++) {
-            StreamsKeySequenceMap.put(StreamsKeySequence.get(i),StreamsKeySequence.get(size/2+i));
+        //Removed Stream keyword
+        if(restParams.getFirst().equalsIgnoreCase("STREAMS")){
+            restParams = restParams.subList(1,restParams.size());
         }
-        log.info("StreamsKeySequenceMap: {}", StreamsKeySequenceMap);
-        List<XReadEntry> ans;
+        List<String> StreamsKeySequence =  restParams;
         if(isBlock){
-            ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap,blockTime);
+            ans = RedisRepository.getXReadEntryBlocking(StreamsKeySequence,blockTime);
         }else{
-            ans = RedisRepository.getXReadEntry(StreamsKeySequenceMap,null);
+            ans = RedisRepository.getXReadEntry(StreamsKeySequence);
         }
         log.info("Xread entries : {}", ans);
         if(ans == null || ans.isEmpty()){
